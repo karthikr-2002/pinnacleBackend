@@ -1,0 +1,77 @@
+{% extends 'dashboard_base.html' %}
+
+{% block title %}My Submitted Peer Reviews - Tailwindadmin{% endblock %}
+
+{% block page_content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">My Peer Review History</h1>
+            <p class="text-sm text-slate-500 mt-1">Record of evaluations you have submitted for your unit colleagues</p>
+        </div>
+        <a href="{% url 'evaluations:user_evaluations' %}" class="px-4 py-2.5 rounded-xl bg-[#5D87FF] hover:bg-[#4570ea] text-white text-xs font-semibold shadow-md shadow-blue-500/20 transition flex items-center gap-2">
+            <i class="fa-solid fa-list-check"></i>
+            <span>Active Evaluations</span>
+        </a>
+    </div>
+
+    <!-- History List -->
+    <div class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <h2 class="text-sm font-bold text-slate-700">Submissions Completed by You ({{ submissions.count }})</h2>
+        </div>
+
+        {% if submissions %}
+        <div class="divide-y divide-slate-100">
+            {% for sub in submissions %}
+            <div class="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/50 transition">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl flex-shrink-0 mt-0.5">
+                        <i class="fa-solid fa-user-check"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-slate-400 font-semibold uppercase">Evaluated Colleague:</span>
+                            <span class="font-bold text-slate-800">{{ sub.evaluatee.get_full_name|default:sub.evaluatee.username }}</span>
+                        </div>
+                        <h3 class="text-sm font-semibold text-slate-700 mt-1">{{ sub.evaluation.title }}</h3>
+                        <div class="flex flex-wrap items-center gap-2 text-xs text-slate-400 mt-1">
+                            <span>Care Unit: <strong class="text-slate-600">{{ sub.unit.name|default:"General" }}</strong></span>
+                            <span>&bull;</span>
+                            <span>Submitted: {{ sub.submitted_at|date:"M d, Y - H:i" }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <div class="text-right">
+                        <span class="text-[11px] text-slate-400 font-semibold block">Average Score</span>
+                        <span class="inline-flex items-center gap-1 text-sm font-black text-slate-800">
+                            <i class="fa-solid fa-star text-amber-400 text-xs"></i>
+                            {{ sub.average_score }} / 5.0
+                        </span>
+                    </div>
+
+                    <a href="{% url 'evaluations:user_history_detail' sub.id %}" class="px-4 py-2 rounded-xl bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-[#5D87FF] text-xs font-semibold border border-slate-200 transition">
+                        View Ratings &rarr;
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="p-12 text-center text-slate-400 text-xs">
+            <div class="w-14 h-14 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3 text-xl">
+                <i class="fa-solid fa-clock-rotate-left"></i>
+            </div>
+            <h3 class="font-bold text-slate-700">No Peer Reviews Submitted Yet</h3>
+            <p class="text-xs text-slate-400 mt-1">Complete evaluations for your unit colleagues to build your submission history.</p>
+            <a href="{% url 'evaluations:user_evaluations' %}" class="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#5D87FF] text-white text-xs font-semibold rounded-xl">
+                Go to Peer Evaluations
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

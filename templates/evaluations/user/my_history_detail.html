@@ -1,0 +1,92 @@
+{% extends 'dashboard_base.html' %}
+
+{% block title %}My Ratings for {{ submission.evaluatee.get_full_name|default:submission.evaluatee.username }}{% endblock %}
+
+{% block page_content %}
+<div class="max-w-3xl mx-auto space-y-6">
+    <!-- Header -->
+    <div>
+        <a href="{% url 'evaluations:user_history' %}" class="text-xs font-semibold text-[#5D87FF] hover:underline flex items-center gap-1.5 mb-2">
+            <i class="fa-solid fa-arrow-left text-[10px]"></i> Back to My History
+        </a>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <span class="text-xs font-bold text-blue-600 uppercase tracking-wider block">Peer Evaluation</span>
+                <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">
+                    Review for {{ submission.evaluatee.get_full_name|default:submission.evaluatee.username }}
+                </h1>
+                <p class="text-sm text-slate-500 mt-1">
+                    Evaluation: <strong class="text-slate-700">{{ submission.evaluation.title }}</strong> &bull;
+                    Unit: <strong class="text-slate-700">{{ submission.unit.name|default:"General" }}</strong> &bull;
+                    Submitted: {{ submission.submitted_at|date:"M d, Y - H:i" }}
+                </p>
+            </div>
+            <span class="px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-xs font-bold border border-emerald-100 flex items-center gap-1">
+                <i class="fa-solid fa-check"></i> Recorded
+            </span>
+        </div>
+    </div>
+
+    <!-- Rating Summary Banner -->
+    <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 flex items-center justify-between">
+        <div>
+            <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Average Score You Awarded</span>
+            <div class="text-3xl font-black text-slate-800 mt-1 flex items-baseline gap-2">
+                {{ submission.average_score }} <span class="text-sm font-medium text-slate-400">/ 5.0</span>
+            </div>
+        </div>
+        <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center text-xl">
+            <i class="fa-solid fa-star"></i>
+        </div>
+    </div>
+
+    <!-- Questions & Ratings Given -->
+    <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 sm:p-8 space-y-4">
+        <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-2">
+            <i class="fa-solid fa-list-check text-blue-500"></i>
+            Ratings Awarded by Question
+        </h2>
+
+        <div class="space-y-3">
+            {% for rating in submission.ratings.all %}
+            <div class="p-4 rounded-2xl bg-slate-50/70 border border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="flex-1">
+                    <span class="text-[11px] font-bold text-[#5D87FF] bg-blue-100/60 px-2 py-0.5 rounded">Q{{ rating.question.order }}</span>
+                    <p class="text-sm font-semibold text-slate-800 mt-1.5">{{ rating.question.question_text }}</p>
+                    {% if rating.comment %}
+                    <p class="text-xs text-slate-500 mt-1 italic">Your note: &ldquo;{{ rating.comment }}&rdquo;</p>
+                    {% endif %}
+                </div>
+
+                <div class="flex flex-col sm:items-end gap-1.5 flex-shrink-0">
+                    <div class="flex items-center gap-1">
+                        {% for i in "012345" %}
+                        <span class="w-7 h-7 rounded-xl text-xs font-bold flex items-center justify-center
+                            {% if forloop.counter0 == rating.score %}
+                                bg-[#5D87FF] text-white shadow-sm ring-2 ring-blue-300 scale-105
+                            {% else %}
+                                bg-white text-slate-300 border border-slate-200
+                            {% endif %}">
+                            {{ forloop.counter0 }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                    <span class="text-[11px] font-semibold text-slate-600 bg-white px-2 py-0.5 rounded-md border border-slate-200">
+                        {{ rating.score_label }}
+                    </span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if submission.feedback %}
+        <div class="mt-6 pt-5 border-t border-slate-100">
+            <span class="text-xs font-bold text-slate-600 uppercase tracking-wider block mb-1">Your Peer Feedback</span>
+            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-700 leading-relaxed">
+                {{ submission.feedback }}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     # Project apps
     'users.apps.UsersConfig',
     'dashboard.apps.DashboardConfig',
+    'evaluations.apps.EvaluationsConfig',
 ]
 
 AUTH_USER_MODEL = 'users.User'

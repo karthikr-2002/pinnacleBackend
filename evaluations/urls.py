@@ -1,0 +1,23 @@
+from django.urls import path
+from . import views
+
+app_name = 'evaluations'
+
+urlpatterns = [
+    # Admin routes
+    path('', views.evaluation_list, name='evaluation_list'),
+    path('create/', views.evaluation_create, name='evaluation_create'),
+    path('<int:pk>/', views.evaluation_detail, name='evaluation_detail'),
+    path('templates/', views.template_list, name='template_list'),
+    path('templates/create/', views.template_create, name='template_create'),
+    path('units/', views.unit_list, name='unit_list'),
+    path('units/create/', views.unit_create, name='unit_create'),
+    path('submissions/', views.admin_submissions_list, name='admin_submissions_list'),
+    path('submissions/<int:pk>/', views.admin_submission_detail, name='admin_submission_detail'),
+
+    # User (Employee) routes
+    path('my/', views.user_evaluations, name='user_evaluations'),
+    path('<int:pk>/rate/<int:evaluatee_id>/', views.evaluation_rate, name='evaluation_rate'),
+    path('my-history/', views.user_history, name='user_history'),
+    path('my-history/<int:pk>/', views.user_history_detail, name='user_history_detail'),
+]

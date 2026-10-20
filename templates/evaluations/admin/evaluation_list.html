@@ -1,0 +1,106 @@
+{% extends 'dashboard_base.html' %}
+
+{% block title %}Care Evaluations - Tailwindadmin{% endblock %}
+
+{% block page_content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">Care Evaluations</h1>
+            <p class="text-sm text-slate-500 mt-1">Manage unit-tagged evaluations and track staff completion rates</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'evaluations:evaluation_create' %}" class="px-4 py-2.5 rounded-xl bg-[#5D87FF] hover:bg-[#4570ea] text-white text-xs font-semibold shadow-md shadow-blue-500/20 transition flex items-center gap-2">
+                <i class="fa-solid fa-plus"></i>
+                <span>Create Evaluation</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Evaluations Table / Cards -->
+    <div class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <h2 class="text-sm font-bold text-slate-700">All Evaluations ({{ evaluations.count }})</h2>
+        </div>
+
+        {% if evaluations %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50/70 text-slate-400 text-[11px] font-bold uppercase tracking-wider border-b border-slate-100">
+                        <th class="py-3.5 px-6">Evaluation Title</th>
+                        <th class="py-3.5 px-4">Template</th>
+                        <th class="py-3.5 px-4">Tagged Care Units</th>
+                        <th class="py-3.5 px-4">Submissions</th>
+                        <th class="py-3.5 px-4">Status</th>
+                        <th class="py-3.5 px-6 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-sm">
+                    {% for eval in evaluations %}
+                    <tr class="hover:bg-slate-50/50 transition">
+                        <td class="py-4 px-6">
+                            <a href="{% url 'evaluations:evaluation_detail' eval.id %}" class="font-bold text-slate-800 hover:text-[#5D87FF] transition">
+                                {{ eval.title }}
+                            </a>
+                            <p class="text-xs text-slate-400 mt-0.5">{{ eval.created_at|date:"M d, Y" }}</p>
+                        </td>
+                        <td class="py-4 px-4">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 text-xs font-medium border border-blue-100">
+                                <i class="fa-solid fa-file-lines text-[10px]"></i>
+                                {{ eval.template.title|truncatechars:28 }}
+                            </span>
+                        </td>
+                        <td class="py-4 px-4">
+                            <div class="flex flex-wrap gap-1.5">
+                                {% for unit in eval.units.all %}
+                                <span class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-xs font-medium">
+                                    {{ unit.name }}
+                                </span>
+                                {% empty %}
+                                <span class="text-xs text-slate-400 italic">No units tagged</span>
+                                {% endfor %}
+                            </div>
+                        </td>
+                        <td class="py-4 px-4">
+                            <span class="font-bold text-slate-800">{{ eval.submissions.count }}</span>
+                            <span class="text-xs text-slate-400">responses</span>
+                        </td>
+                        <td class="py-4 px-4">
+                            <span class="px-2.5 py-1 rounded-full text-xs font-bold
+                                {% if eval.status == 'active' %}
+                                    bg-emerald-50 text-emerald-600 border border-emerald-100
+                                {% elif eval.status == 'completed' %}
+                                    bg-blue-50 text-blue-600 border border-blue-100
+                                {% else %}
+                                    bg-slate-100 text-slate-500
+                                {% endif %}">
+                                {{ eval.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="py-4 px-6 text-right">
+                            <a href="{% url 'evaluations:evaluation_detail' eval.id %}" class="px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-blue-50 text-slate-600 hover:text-blue-600 text-xs font-semibold border border-slate-200 transition">
+                                View Results &rarr;
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-12 text-center">
+            <div class="w-16 h-16 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center mx-auto mb-3 text-2xl">
+                <i class="fa-solid fa-clipboard-check"></i>
+            </div>
+            <h3 class="text-base font-bold text-slate-800">No evaluations created yet</h3>
+            <p class="text-xs text-slate-500 mt-1 max-w-sm mx-auto">Create your first evaluation to tag care units and collect ratings from staff.</p>
+            <a href="{% url 'evaluations:evaluation_create' %}" class="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#5D87FF] text-white text-xs font-semibold rounded-xl shadow-md">
+                <i class="fa-solid fa-plus"></i> Create Evaluation
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
