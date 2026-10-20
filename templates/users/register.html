@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Account - Tailwindadmin{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-[#ECF2FF]/60 via-[#F4F7FB] to-[#E8F7FF]/50 relative overflow-hidden">
+    <div class="absolute -top-32 -right-32 w-96 h-96 bg-blue-300/20 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute -bottom-32 -left-32 w-96 h-96 bg-indigo-300/20 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="w-full max-w-lg relative z-10">
+        <!-- Logo and Brand -->
+        <div class="flex flex-col items-center mb-8 text-center">
+            <div class="flex items-center gap-2.5">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/30">
+                    <div class="w-4 h-4 rounded-full bg-white/90"></div>
+                </div>
+                <span class="text-2xl font-bold tracking-tight text-slate-800">
+                    Tailwind<span class="text-[#5D87FF]">admin</span>
+                </span>
+            </div>
+            <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mt-2">Care Management System</p>
+        </div>
+
+        <div class="bg-white rounded-3xl shadow-[0_15px_40px_-15px_rgba(0,0,0,0.07)] border border-slate-100 p-8 sm:p-10 transition-all duration-300">
+            <div class="mb-6">
+                <h2 class="text-2xl font-extrabold text-slate-800 tracking-tight">Create your account 🚀</h2>
+                <p class="text-sm text-slate-500 mt-1">Get started with your administrative dashboard</p>
+            </div>
+
+            <form method="POST" action="{% url 'users:register' %}" class="space-y-4">
+                {% csrf_token %}
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">First Name</label>
+                        {{ form.first_name }}
+                        {% if form.first_name.errors %}<p class="text-xs text-rose-500 mt-1">{{ form.first_name.errors.0 }}</p>{% endif %}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Last Name</label>
+                        {{ form.last_name }}
+                        {% if form.last_name.errors %}<p class="text-xs text-rose-500 mt-1">{{ form.last_name.errors.0 }}</p>{% endif %}
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Username</label>
+                    {{ form.username }}
+                    {% if form.username.errors %}<p class="text-xs text-rose-500 mt-1">{{ form.username.errors.0 }}</p>{% endif %}
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Email Address</label>
+                    {{ form.email }}
+                    {% if form.email.errors %}<p class="text-xs text-rose-500 mt-1">{{ form.email.errors.0 }}</p>{% endif %}
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Role</label>
+                    {{ form.role }}
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Password</label>
+                    {{ form.password1 }}
+                    {% if form.password1.errors %}<p class="text-xs text-rose-500 mt-1">{{ form.password1.errors.0 }}</p>{% endif %}
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Confirm Password</label>
+                    {{ form.password2 }}
+                    {% if form.password2.errors %}<p class="text-xs text-rose-500 mt-1">{{ form.password2.errors.0 }}</p>{% endif %}
+                </div>
+
+                <div class="pt-3">
+                    <button type="submit"
+                            class="w-full py-3 px-4 rounded-xl bg-[#5D87FF] hover:bg-[#4570ea] text-white font-semibold text-sm shadow-md shadow-blue-500/25 transition-all duration-200 flex items-center justify-center gap-2 group active:scale-[0.99]">
+                        <span>Complete Registration</span>
+                        <i class="fa-solid fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i>
+                    </button>
+                </div>
+            </form>
+
+            <div class="mt-6 text-center text-xs text-slate-500">
+                Already have an account?
+                <a href="{% url 'users:login' %}" class="text-[#5D87FF] font-semibold hover:underline ms-1">Sign In</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
