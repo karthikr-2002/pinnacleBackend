@@ -31,17 +31,109 @@
                 {% if form.template.errors %}<p class="text-xs text-rose-500 mt-1">{{ form.template.errors.0 }}</p>{% endif %}
             </div>
 
+            <!-- Tag Care Units (Multi-Selection with 'All' option at top) -->
             <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Tag Care Units</label>
-                {{ form.units }}
-                <p class="text-[11px] text-slate-400 mt-1">Employees assigned to selected units will automatically be eligible to rate the questions.</p>
-                {% if form.units.errors %}<p class="text-xs text-rose-500 mt-1">{{ form.units.errors.0 }}</p>{% endif %}
+                <div class="flex items-center justify-between mb-1.5">
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                        Tag Care Units
+                    </label>
+                    <span class="text-[11px] text-[#5D87FF] font-semibold flex items-center gap-1">
+                        <i class="fa-solid fa-list-check"></i> Multi-Selection
+                    </span>
+                </div>
+                <p class="text-[11px] text-slate-400 mb-3">
+                    Select all care units or pick multiple specific units to participate in this evaluation.
+                </p>
+
+                <!-- Options List (All + Individual Units) -->
+                <div class="space-y-2.5" id="unit-selection-group">
+                    <!-- Option 1: ALL CARE UNITS (Select All / Deselect All) -->
+                    <label class="unit-card flex items-start gap-3.5 p-3.5 rounded-2xl border cursor-pointer transition border-[#5D87FF] bg-blue-50/40 shadow-2xs" id="card-all">
+                        <input type="checkbox" 
+                               id="checkbox-all"
+                               name="all_units" 
+                               value="true"
+                               checked 
+                               onchange="handleAllUnitsToggle(this)"
+                               class="mt-1 w-4 h-4 rounded text-[#5D87FF] focus:ring-[#5D87FF] border-slate-300 cursor-pointer">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                    <i class="fa-solid fa-layer-group text-[#5D87FF]"></i>
+                                    All Care Units
+                                </span>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#5D87FF] text-white">
+                                    All ({{ units|length }} Units)
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-0.5">
+                                Automatically tags all units and all assigned employees facility-wide.
+                            </p>
+                        </div>
+                    </label>
+
+                    <!-- Option 2+: INDIVIDUAL UNITS (Multi-selectable directly) -->
+                    {% for unit in units %}
+                    <label class="unit-card flex items-start gap-3.5 p-3.5 rounded-2xl border cursor-pointer transition border-[#5D87FF] bg-blue-50/40 shadow-2xs" id="card-unit-{{ unit.id }}">
+                        <input type="checkbox" 
+                               id="checkbox-unit-{{ unit.id }}"
+                               name="selected_units" 
+                               value="{{ unit.id }}" 
+                               checked
+                               onchange="handleUnitToggle(this)"
+                               class="unit-checkbox mt-1 w-4 h-4 rounded text-[#5D87FF] focus:ring-[#5D87FF] border-slate-300 cursor-pointer">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                    <i class="fa-solid fa-door-open text-slate-400"></i>
+                                    {{ unit.name }}
+                                </span>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                    {{ unit.users.count }} Staff
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
+                                <i class="fa-solid fa-location-dot text-[10px]"></i>
+                                {{ unit.place }}
+                            </p>
+                        </div>
+                    </label>
+                    {% endfor %}
+                </div>
+
+                {% if form.selected_units.errors %}
+                <p class="text-xs text-rose-500 mt-1.5">{{ form.selected_units.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Evaluation Schedule (Start Date & End Date) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                        <span>Start Date</span>
+                        <span class="text-[10px] text-[#5D87FF] font-semibold lowercase">can be future date</span>
+                    </label>
+                    {{ form.start_date }}
+                    <p class="text-[11px] text-slate-400 mt-1">Evaluation becomes active & appears for staff on this date.</p>
+                    {% if form.start_date.errors %}<p class="text-xs text-rose-500 mt-1">{{ form.start_date.errors.0 }}</p>{% endif %}
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                        <span>End Date (Optional)</span>
+                        <span class="text-[10px] text-slate-400 font-normal lowercase">display purpose</span>
+                    </label>
+                    {{ form.end_date }}
+                    <p class="text-[11px] text-slate-400 mt-1">Target closing deadline shown to participants.</p>
+                    {% if form.end_date.errors %}<p class="text-xs text-rose-500 mt-1">{{ form.end_date.errors.0 }}</p>{% endif %}
+                </div>
             </div>
 
             <div>
                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Status</label>
                 {{ form.status }}
             </div>
+
 
             <div>
                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Instructions or Scope (Optional)</label>
@@ -52,7 +144,7 @@
                 <a href="{% url 'evaluations:evaluation_list' %}" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition">
                     Cancel
                 </a>
-                <button type="submit" class="px-5 py-2.5 rounded-xl bg-[#5D87FF] hover:bg-[#4570ea] text-white text-xs font-semibold shadow-md shadow-blue-500/20 transition flex items-center gap-2">
+                <button type="submit" class="px-5 py-2.5 rounded-xl bg-[#5D87FF] hover:bg-[#4570ea] text-white text-xs font-semibold shadow-md shadow-blue-500/20 transition flex items-center gap-2 cursor-pointer">
                     <i class="fa-solid fa-check"></i>
                     <span>Save & Publish Evaluation</span>
                 </button>
@@ -60,4 +152,46 @@
         </form>
     </div>
 </div>
+
+<script>
+function handleAllUnitsToggle(allCheckbox) {
+    const isChecked = allCheckbox.checked;
+    const unitCheckboxes = document.querySelectorAll('.unit-checkbox');
+    unitCheckboxes.forEach(cb => {
+        cb.checked = isChecked;
+        updateCardStyle(cb);
+    });
+    updateCardStyle(allCheckbox);
+}
+
+function handleUnitToggle(unitCheckbox) {
+    updateCardStyle(unitCheckbox);
+    const allCheckbox = document.getElementById('checkbox-all');
+    const unitCheckboxes = document.querySelectorAll('.unit-checkbox');
+    const allChecked = Array.from(unitCheckboxes).every(cb => cb.checked);
+    if (allCheckbox) {
+        allCheckbox.checked = allChecked;
+        updateCardStyle(allCheckbox);
+    }
+}
+
+function updateCardStyle(checkbox) {
+    const card = checkbox.closest('.unit-card');
+    if (!card) return;
+    if (checkbox.checked) {
+        card.classList.remove('border-slate-200', 'bg-white');
+        card.classList.add('border-[#5D87FF]', 'bg-blue-50/40', 'shadow-2xs');
+    } else {
+        card.classList.remove('border-[#5D87FF]', 'bg-blue-50/40', 'shadow-2xs');
+        card.classList.add('border-slate-200', 'bg-white');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.unit-card input[type="checkbox"]').forEach(cb => {
+        updateCardStyle(cb);
+    });
+});
+</script>
 {% endblock %}
+

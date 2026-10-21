@@ -1,18 +1,15 @@
 from django import forms
+from django.utils import timezone
 from .models import Unit, EvaluationTemplate, Question, Evaluation
 from users.models import User
 
 
 class UnitForm(forms.ModelForm):
+    assignment_mode = forms.CharField(required=False, initial='all')
+    all_employees = forms.BooleanField(required=False)
     users = forms.ModelMultipleChoiceField(
         queryset=User.objects.all(),
-        required=False,
-        widget=forms.SelectMultiple(
-            attrs={
-                'class': 'w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-[#5D87FF]/20 focus:border-[#5D87FF] bg-slate-50/50 min-h-[140px]',
-            }
-        ),
-        help_text="Select employees assigned to this care unit (hold Ctrl/Cmd to select multiple)"
+        required=False
     )
 
     class Meta:
@@ -33,18 +30,29 @@ class UnitForm(forms.ModelForm):
             ),
         }
 
+    def clean(self):
+        cleaned_data = super().clean()
+        mode = cleaned_data.get('assignment_mode')
+        all_emp = cleaned_data.get('all_employees')
+        if mode == 'all' or all_emp:
+            cleaned_data['users'] = list(User.objects.all())
+        return cleaned_data
+
+
+
 
 class EvaluationTemplateForm(forms.ModelForm):
     questions_input = forms.CharField(
         widget=forms.Textarea(
             attrs={
                 'class': 'w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-[#5D87FF]/20 focus:border-[#5D87FF] bg-slate-50/50 min-h-[160px]',
-                'placeholder': 'Enter each question on a new line, e.g.:\nHow effectively are infection control protocols followed?\nHow prompt is staff response to resident calls?\nHow thorough is handover documentation?',
+                'placeholder': 'Enter each question on a new line...',
             }
         ),
-        required=True,
-        help_text="Enter one evaluation question per line. Choices will automatically be rated from 0 to 5."
+        required=False,
+        help_text="Enter questions or use the dynamic questions builder below."
     )
+
 
     class Meta:
         model = EvaluationTemplate
@@ -66,20 +74,36 @@ class EvaluationTemplateForm(forms.ModelForm):
 
 
 class EvaluationForm(forms.ModelForm):
-    units = forms.ModelMultipleChoiceField(
+    all_units = forms.BooleanField(required=False, initial=True)
+    selected_units = forms.ModelMultipleChoiceField(
         queryset=Unit.objects.all(),
-        required=False,
-        widget=forms.SelectMultiple(
+        required=False
+    )
+    start_date = forms.DateField(
+        widget=forms.DateInput(
             attrs={
-                'class': 'w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-[#5D87FF]/20 focus:border-[#5D87FF] bg-slate-50/50 min-h-[120px]',
+                'type': 'date',
+                'class': 'w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-[#5D87FF]/20 focus:border-[#5D87FF] bg-slate-50/50',
             }
         ),
-        help_text="Select units to tag (employees in these units will be invited to evaluate)"
+        required=True,
+        initial=timezone.now().date,
+        help_text="Evaluation becomes active and appears for staff on this date."
+    )
+    end_date = forms.DateField(
+        widget=forms.DateInput(
+            attrs={
+                'type': 'date',
+                'class': 'w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-[#5D87FF]/20 focus:border-[#5D87FF] bg-slate-50/50',
+            }
+        ),
+        required=False,
+        help_text="Target closing deadline for display purposes."
     )
 
     class Meta:
         model = Evaluation
-        fields = ('title', 'description', 'template', 'units', 'status')
+        fields = ('title', 'description', 'template', 'start_date', 'end_date', 'status')
         widgets = {
             'title': forms.TextInput(
                 attrs={
@@ -104,3 +128,36 @@ class EvaluationForm(forms.ModelForm):
                 }
             ),
         }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        all_units_checked = cleaned_data.get('all_units')
+        chosen_units = cleaned_data.get('selected_units')
+        start_date = cleaned_data.get('start_date')
+        end_date = cleaned_data.get('end_date')
+
+        if start_date and end_date and end_date < start_date:
+            self.add_error('end_date', 'End date cannot be earlier than start date.')
+
+        if all_units_checked:
+            cleaned_data['final_units'] = list(Unit.objects.all())
+        elif chosen_units and chosen_units.exists():
+            cleaned_data['final_units'] = list(chosen_units)
+        else:
+            self.add_error('selected_units', 'Please select at least one care unit.')
+            cleaned_data['final_units'] = []
+
+        return cleaned_data
+
+
+    def save(self, commit=True):
+        evaluation = super().save(commit=commit)
+        def save_m2m():
+            final_units = self.cleaned_data.get('final_units', [])
+            evaluation.units.set(final_units)
+        if commit:
+            save_m2m()
+        else:
+            self.save_m2m = save_m2m
+        return evaluation
+

@@ -1,6 +1,8 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
+from django.utils import timezone
 from evaluations.models import Unit, EvaluationTemplate, Evaluation, EvaluationSubmission
+
 
 
 @login_required(login_url='users:login')
@@ -10,7 +12,7 @@ def dashboard_view(request):
 
     # Dynamically populate stats based on database records
     if is_admin:
-        active_evals_count = Evaluation.objects.filter(status='active').count()
+        active_evals_count = Evaluation.objects.filter(status__in=['not_started', 'in_progress', 'active']).count()
         total_units_count = Unit.objects.count()
         total_submissions_count = EvaluationSubmission.objects.count()
 
@@ -40,8 +42,14 @@ def dashboard_view(request):
         recent_evaluations = Evaluation.objects.all().select_related('template')[:4]
     else:
         user_units = user.assigned_units.all()
-        available_evals = Evaluation.objects.filter(status='active', units__in=user_units).distinct()
+        today = timezone.now().date()
+        available_evals = Evaluation.objects.filter(
+            status__in=['not_started', 'in_progress', 'active'],
+            start_date__lte=today,
+            units__in=user_units
+        ).distinct()
         completed_evals = EvaluationSubmission.objects.filter(evaluator=user).count()
+
 
         stats = [
             {

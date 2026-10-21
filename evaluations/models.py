@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.utils import timezone
 from django.core.validators import MinValueValidator, MaxValueValidator
 
 
@@ -97,9 +98,9 @@ class Question(models.Model):
 
 class Evaluation(models.Model):
     STATUS_CHOICES = (
-        ('active', 'Active'),
+        ('not_started', 'Not Started'),
+        ('in_progress', 'In Progress'),
         ('completed', 'Completed'),
-        ('draft', 'Draft'),
     )
 
     title = models.CharField(max_length=200, help_text="e.g. Q4 Care Performance Evaluation")
@@ -122,7 +123,9 @@ class Evaluation(models.Model):
         blank=True,
         help_text="Directly tagged users"
     )
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='not_started')
+    start_date = models.DateField(default=timezone.now, help_text="Evaluation start date (can be set to a future date to schedule launch)")
+    end_date = models.DateField(null=True, blank=True, help_text="Evaluation deadline / closing date (display purpose)")
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -136,7 +139,74 @@ class Evaluation(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.title} ({self.get_status_display()})"
+        return f"{self.title} ({self.get_dynamic_status_display()})"
+
+    @property
+    def is_upcoming(self):
+        """Returns True if the evaluation start_date is set in the future."""
+        if self.start_date:
+            return self.start_date > timezone.now().date()
+        return False
+
+    @property
+    def is_active_for_users(self):
+        """Returns True if evaluation has started and is not completed."""
+        return not self.is_upcoming and self.status != 'completed'
+
+    def get_dynamic_status(self):
+        """
+        Determines evaluation status dynamically based on dates and ratings activity:
+        - 'not_started': if start_date is in the future OR no employees have rated (0 submissions)
+        - 'in_progress': if >= 1 employee started rating, but not all completed
+        - 'completed': if all questions/peers across tagged units are rated & submitted, or explicitly completed
+        """
+        if self.is_upcoming:
+            return 'not_started'
+
+        submissions_count = self.submissions.count()
+        if submissions_count == 0:
+            return 'not_started'
+
+
+        # Total expected submissions across tagged units
+        total_expected = 0
+        for unit in self.units.all():
+            n = unit.users.count()
+            if n > 1:
+                total_expected += n * (n - 1)
+
+        if total_expected > 0 and submissions_count >= total_expected:
+            return 'completed'
+
+        if self.status == 'completed':
+            return 'completed'
+
+        return 'in_progress'
+
+    def get_dynamic_status_display(self):
+        labels = {
+            'not_started': 'Not Started',
+            'in_progress': 'In Progress',
+            'completed': 'Completed',
+            'active': 'In Progress',  # fallback for legacy data
+        }
+        return labels.get(self.get_dynamic_status(), 'Not Started')
+
+    def get_status_display(self):
+        return self.get_dynamic_status_display()
+
+    @property
+    def dynamic_status(self):
+        return self.get_dynamic_status()
+
+    def sync_status(self):
+        """Updates the stored status field to match the dynamic status."""
+        new_status = self.get_dynamic_status()
+        if self.status != new_status:
+            self.status = new_status
+            self.save(update_fields=['status'])
+        return new_status
+
 
     def is_user_eligible(self, user):
         """Check if user belongs to tagged units or is directly tagged, or is admin."""

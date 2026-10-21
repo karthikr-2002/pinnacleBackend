@@ -34,7 +34,8 @@
                         <th class="py-3.5 px-4">Tagged Care Units</th>
                         <th class="py-3.5 px-4">Submissions</th>
                         <th class="py-3.5 px-4">Status</th>
-                        <th class="py-3.5 px-6 text-right">Actions</th>
+                        <th class="py-3.5 px-6 text-right whitespace-nowrap">Actions</th>
+
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 text-sm">
@@ -44,7 +45,18 @@
                             <a href="{% url 'evaluations:evaluation_detail' eval.id %}" class="font-bold text-slate-800 hover:text-[#5D87FF] transition">
                                 {{ eval.title }}
                             </a>
-                            <p class="text-xs text-slate-400 mt-0.5">{{ eval.created_at|date:"M d, Y" }}</p>
+                            <p class="text-xs text-slate-400 mt-1 flex items-center gap-1.5 flex-wrap">
+                                <span class="inline-flex items-center gap-1">
+                                    <i class="fa-regular fa-calendar text-[10px] text-slate-400"></i>
+                                    <span>Start: {{ eval.start_date|date:"M d, Y" }}</span>
+                                </span>
+                                {% if eval.end_date %}
+                                <span>&bull;</span>
+                                <span class="inline-flex items-center gap-1 text-slate-500 font-medium">
+                                    <span>End: {{ eval.end_date|date:"M d, Y" }}</span>
+                                </span>
+                                {% endif %}
+                            </p>
                         </td>
                         <td class="py-4 px-4">
                             <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 text-xs font-medium border border-blue-100">
@@ -67,23 +79,37 @@
                             <span class="font-bold text-slate-800">{{ eval.submissions.count }}</span>
                             <span class="text-xs text-slate-400">responses</span>
                         </td>
-                        <td class="py-4 px-4">
-                            <span class="px-2.5 py-1 rounded-full text-xs font-bold
-                                {% if eval.status == 'active' %}
-                                    bg-emerald-50 text-emerald-600 border border-emerald-100
-                                {% elif eval.status == 'completed' %}
-                                    bg-blue-50 text-blue-600 border border-blue-100
-                                {% else %}
-                                    bg-slate-100 text-slate-500
-                                {% endif %}">
-                                {{ eval.get_status_display }}
+                        <td class="py-4 px-4 whitespace-nowrap">
+                            {% if eval.is_upcoming %}
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200" title="Starts on {{ eval.start_date|date:'M d, Y' }}">
+                                <i class="fa-regular fa-calendar-clock text-blue-500 text-[11px]"></i>
+                                <span>Scheduled ({{ eval.start_date|date:"M d" }})</span>
                             </span>
+                            {% elif eval.get_dynamic_status == 'completed' %}
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                <i class="fa-solid fa-circle-check text-emerald-500 text-[11px]"></i>
+                                <span>Completed</span>
+                            </span>
+                            {% elif eval.get_dynamic_status == 'in_progress' %}
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                <i class="fa-solid fa-spinner fa-spin-pulse text-amber-500 text-[11px]"></i>
+                                <span>In Progress</span>
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                <i class="fa-regular fa-clock text-slate-400 text-[11px]"></i>
+                                <span>Not Started</span>
+                            </span>
+                            {% endif %}
                         </td>
-                        <td class="py-4 px-6 text-right">
-                            <a href="{% url 'evaluations:evaluation_detail' eval.id %}" class="px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-blue-50 text-slate-600 hover:text-blue-600 text-xs font-semibold border border-slate-200 transition">
-                                View Results &rarr;
+
+                        <td class="py-4 px-6 text-right whitespace-nowrap">
+                            <a href="{% url 'evaluations:evaluation_detail' eval.id %}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-blue-50 text-slate-600 hover:text-[#5D87FF] text-xs font-semibold border border-slate-200 hover:border-blue-200 transition group whitespace-nowrap">
+                                <span>View Results</span>
+                                <i class="fa-solid fa-arrow-right text-[10px] text-slate-400 group-hover:text-[#5D87FF] transition-transform group-hover:translate-x-0.5"></i>
                             </a>
                         </td>
+
                     </tr>
                     {% endfor %}
                 </tbody>

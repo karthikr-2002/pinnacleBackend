@@ -12,23 +12,57 @@
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
                 <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">{{ evaluation.title }}</h1>
-                <p class="text-xs text-slate-500 mt-1">
-                    Template: <span class="font-semibold text-slate-700">{{ evaluation.template.title }}</span> &bull;
-                    Created: {{ evaluation.created_at|date:"M d, Y" }}
+                <p class="text-xs text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
+                    <span>Template: <strong class="text-slate-700">{{ evaluation.template.title }}</strong></span>
+                    <span>&bull;</span>
+                    <span class="inline-flex items-center gap-1"><i class="fa-regular fa-calendar text-[11px] text-slate-400"></i> Start: <strong class="text-slate-700">{{ evaluation.start_date|date:"M d, Y" }}</strong></span>
+                    {% if evaluation.end_date %}
+                    <span>&bull;</span>
+                    <span class="inline-flex items-center gap-1"><i class="fa-regular fa-calendar-check text-[11px] text-slate-400"></i> End: <strong class="text-slate-700">{{ evaluation.end_date|date:"M d, Y" }}</strong></span>
+                    {% endif %}
                 </p>
             </div>
             <div>
-                <span class="px-3 py-1 rounded-full text-xs font-bold
-                    {% if evaluation.status == 'active' %} bg-emerald-50 text-emerald-600 border border-emerald-100
-                    {% else %} bg-slate-100 text-slate-600 {% endif %}">
-                    {{ evaluation.get_status_display }}
+                {% if evaluation.is_upcoming %}
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                    <i class="fa-regular fa-calendar-clock text-blue-500 text-[11px]"></i>
+                    Scheduled (Starts {{ evaluation.start_date|date:"M d" }})
                 </span>
+                {% elif evaluation.get_dynamic_status == 'completed' %}
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <i class="fa-solid fa-circle-check text-emerald-500 text-[11px]"></i>
+                    Completed
+                </span>
+                {% elif evaluation.get_dynamic_status == 'in_progress' %}
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                    <i class="fa-solid fa-spinner fa-spin-pulse text-amber-500 text-[11px]"></i>
+                    In Progress
+                </span>
+                {% else %}
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                    <i class="fa-regular fa-clock text-slate-400 text-[11px]"></i>
+                    Not Started
+                </span>
+                {% endif %}
             </div>
         </div>
     </div>
 
+    {% if evaluation.is_upcoming %}
+    <div class="p-4 rounded-2xl bg-blue-50 border border-blue-200 text-blue-900 text-xs flex items-center gap-3.5">
+        <div class="w-10 h-10 rounded-xl bg-blue-100 text-[#5D87FF] flex items-center justify-center flex-shrink-0 text-base">
+            <i class="fa-solid fa-calendar-clock"></i>
+        </div>
+        <div>
+            <p class="font-bold text-sm text-blue-900">Scheduled Future Evaluation</p>
+            <p class="text-blue-700 mt-0.5">This evaluation has a future start date of <strong>{{ evaluation.start_date|date:"l, F d, Y" }}</strong>. It will automatically start and appear for staff members on that date.</p>
+        </div>
+    </div>
+    {% endif %}
+
+
     <!-- Quick Stats Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <div class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm flex items-center gap-4">
             <div class="w-12 h-12 rounded-2xl bg-blue-50 text-[#5D87FF] flex items-center justify-center text-xl">
                 <i class="fa-solid fa-hospital-user"></i>
@@ -40,12 +74,22 @@
         </div>
 
         <div class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm flex items-center gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl">
+                <i class="fa-solid fa-user-check"></i>
+            </div>
+            <div>
+                <span class="text-xs text-slate-400 font-medium">Staff Completed</span>
+                <p class="text-xl font-black text-slate-800">{{ total_completed_employees }}/{{ total_tagged_employees }} <span class="text-xs text-slate-400 font-normal">({{ overall_progress_pct }}%)</span></p>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm flex items-center gap-4">
             <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-500 flex items-center justify-center text-xl">
                 <i class="fa-solid fa-clipboard-check"></i>
             </div>
             <div>
-                <span class="text-xs text-slate-400 font-medium">Staff Submissions</span>
-                <p class="text-xl font-black text-slate-800">{{ submissions.count }}</p>
+                <span class="text-xs text-slate-400 font-medium">Total Submissions</span>
+                <p class="text-xl font-black text-slate-800">{{ total_submissions }}</p>
             </div>
         </div>
 
@@ -54,7 +98,7 @@
                 <i class="fa-solid fa-star"></i>
             </div>
             <div>
-                <span class="text-xs text-slate-400 font-medium">Overall Average Score</span>
+                <span class="text-xs text-slate-400 font-medium">Average Rating</span>
                 <p class="text-xl font-black text-slate-800">{{ avg_score }} <span class="text-xs text-slate-400 font-normal">/ 5.0</span></p>
             </div>
         </div>
@@ -77,70 +121,271 @@
         </div>
     </div>
 
-    <!-- Staff Submissions Table (Admin Only) -->
-    <div class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-            <h2 class="text-sm font-bold text-slate-700 flex items-center gap-2">
-                <i class="fa-solid fa-user-check text-emerald-500"></i>
-                Employee Submissions & Ratings Data ({{ submissions.count }})
-            </h2>
-            <span class="text-xs text-slate-400">Only visible to administrators</span>
+    <!-- Care Units & Employee Evaluation Progress -->
+    <div class="space-y-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h2 class="text-lg font-black text-slate-800 tracking-tight flex items-center gap-2.5">
+                    <i class="fa-solid fa-hospital-user text-[#5D87FF]"></i>
+                    Care Units & Employee Evaluation Status
+                </h2>
+                <p class="text-xs text-slate-500 mt-0.5">Staff evaluation completion status grouped separately by assigned care unit</p>
+            </div>
         </div>
 
-        {% if submissions %}
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-                <thead>
-                    <tr class="bg-slate-50/70 text-slate-400 text-[11px] font-bold uppercase tracking-wider border-b border-slate-100">
-                        <th class="py-3.5 px-6">Evaluator (Staff)</th>
-                        <th class="py-3.5 px-4">Colleague Evaluated</th>
-                        <th class="py-3.5 px-4">Care Unit</th>
-                        <th class="py-3.5 px-4">Average Rating</th>
-                        <th class="py-3.5 px-4">Submitted At</th>
-                        <th class="py-3.5 px-6 text-right">Details</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100 text-sm">
-                    {% for sub in submissions %}
-                    <tr class="hover:bg-slate-50/50 transition">
-                        <td class="py-4 px-6">
-                            <span class="font-bold text-slate-800">{{ sub.evaluator.get_full_name|default:sub.evaluator.username }}</span>
-                            <p class="text-xs text-slate-400">@{{ sub.evaluator.username }}</p>
-                        </td>
-                        <td class="py-4 px-4">
-                            <span class="font-bold text-blue-600">{{ sub.evaluatee.get_full_name|default:sub.evaluatee.username }}</span>
-                            <p class="text-xs text-slate-400">@{{ sub.evaluatee.username }}</p>
-                        </td>
-                        <td class="py-4 px-4 text-xs font-semibold text-slate-600">
-                            {{ sub.unit.name|default:"General" }}
-                        </td>
-                        <td class="py-4 px-4">
-                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold
-                                {% if sub.average_score >= 4 %} bg-emerald-50 text-emerald-600
-                                {% elif sub.average_score >= 2.5 %} bg-amber-50 text-amber-600
-                                {% else %} bg-rose-50 text-rose-600 {% endif %}">
-                                <i class="fa-solid fa-star text-[10px]"></i>
-                                {{ sub.average_score }} / 5.0
+        {% for udata in units_data %}
+        <div class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden transition duration-200 hover:shadow-md">
+            <!-- Unit Header -->
+            <div class="p-6 bg-slate-50/70 border-b border-slate-100 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-12 h-12 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-center text-[#5D87FF] text-xl font-bold">
+                        <i class="fa-solid fa-building-user"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2.5 flex-wrap">
+                            <h3 class="text-base font-extrabold text-slate-800">{{ udata.unit.name }}</h3>
+                            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-white text-slate-600 border border-slate-200">
+                                <i class="fa-solid fa-location-dot text-slate-400 mr-1"></i>{{ udata.unit.place }}
                             </span>
-                        </td>
-                        <td class="py-4 px-4 text-xs text-slate-500">
-                            {{ sub.submitted_at|date:"M d, Y - H:i" }}
-                        </td>
-                        <td class="py-4 px-6 text-right">
-                            <a href="{% url 'evaluations:admin_submission_detail' sub.id %}" class="px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white text-xs font-semibold transition">
-                                View Full Ratings &rarr;
-                            </a>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-0.5">
+                            {{ udata.total_employees }} Assigned Staff Members in this Unit
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Unit Completion Progress Badge & Bar (e.g. 4/8 Employees Completed) -->
+                <div class="flex items-center gap-4 bg-white px-5 py-3 rounded-2xl border border-slate-100 shadow-2xs">
+                    <div class="text-right">
+                        <div class="flex items-center justify-end gap-1.5">
+                            <span class="text-sm font-black text-slate-800">
+                                {{ udata.completed_employees_count }}/{{ udata.total_employees }}
+                            </span>
+                            <span class="text-xs font-semibold text-slate-500">Employees Completed</span>
+                        </div>
+                        <div class="w-36 bg-slate-100 rounded-full h-2 mt-1.5 overflow-hidden">
+                            <div class="h-full rounded-full transition-all duration-500
+                                {% if udata.progress_pct == 100 %} bg-emerald-500
+                                {% elif udata.progress_pct >= 50 %} bg-[#5D87FF]
+                                {% elif udata.progress_pct > 0 %} bg-amber-500
+                                {% else %} bg-slate-300 {% endif %}"
+                                style="width: {{ udata.progress_pct }}%">
+                            </div>
+                        </div>
+                    </div>
+                    <span class="px-2.5 py-1 rounded-xl text-xs font-black
+                        {% if udata.progress_pct == 100 %} bg-emerald-50 text-emerald-700 border border-emerald-100
+                        {% elif udata.progress_pct >= 50 %} bg-blue-50 text-blue-700 border border-blue-100
+                        {% else %} bg-amber-50 text-amber-700 border border-amber-100 {% endif %}">
+                        {{ udata.progress_pct }}%
+                    </span>
+                </div>
+            </div>
+
+            <!-- Employees Table for this Unit -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-white text-slate-400 text-[11px] font-bold uppercase tracking-wider border-b border-slate-100">
+                            <th class="py-3.5 px-6">Employee (Staff)</th>
+                            <th class="py-3.5 px-4">Evaluation Status</th>
+                            <th class="py-3.5 px-4">Peer Progress</th>
+                            <th class="py-3.5 px-4">Submitted At</th>
+                            <th class="py-3.5 px-4">Avg Rating Given</th>
+                            <th class="py-3.5 px-6 text-right">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-sm">
+                        {% for emp_data in udata.employees %}
+                        <tr class="hover:bg-slate-50/50 transition group">
+                            <!-- Employee Profile -->
+                            <td class="py-4 px-6">
+                                <div class="flex items-center gap-3">
+                                    <img src="{{ emp_data.employee.avatar_url|default:'https://api.dicebear.com/7.x/bottts/svg?seed=user' }}"
+                                         alt="{{ emp_data.employee.username }}"
+                                         class="w-10 h-10 rounded-xl bg-slate-100 border border-slate-200 object-cover flex-shrink-0">
+                                    <div>
+                                        <h4 class="font-bold text-slate-800 text-sm leading-tight">
+                                            {{ emp_data.employee.get_full_name|default:emp_data.employee.username }}
+                                        </h4>
+                                        <p class="text-xs text-slate-400 mt-0.5">
+                                            @{{ emp_data.employee.username }} &bull;
+                                            <span class="text-slate-500 font-medium">{{ emp_data.employee.job_title|default:"Staff" }}</span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- Evaluation Status Badge -->
+                            <td class="py-4 px-4">
+                                {% if emp_data.status == 'completed' %}
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    <i class="fa-solid fa-circle-check text-emerald-500"></i> Completed
+                                </span>
+                                {% elif emp_data.status == 'in_progress' %}
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                    <i class="fa-solid fa-spinner fa-spin-pulse text-amber-500"></i> In Progress
+                                </span>
+                                {% elif emp_data.status == 'started' %}
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200">
+                                    <i class="fa-solid fa-play text-sky-500 text-[10px]"></i> Started
+                                </span>
+                                {% else %}
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-500 border border-slate-200">
+                                    <i class="fa-regular fa-clock text-slate-400"></i> Not Started
+                                </span>
+                                {% endif %}
+                            </td>
+
+                            <!-- Peer Progress (e.g. 3 of 4 peers evaluated) -->
+                            <td class="py-4 px-4">
+                                <div class="w-36">
+                                    <div class="flex items-center justify-between text-xs mb-1">
+                                        <span class="font-bold text-slate-700">
+                                            {{ emp_data.completed_peers_count }}/{{ emp_data.total_peers }}
+                                        </span>
+                                        <span class="text-[11px] text-slate-400 font-medium">
+                                            peers evaluated
+                                        </span>
+                                    </div>
+                                    <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                                        <div class="h-full rounded-full transition-all duration-300
+                                            {% if emp_data.status == 'completed' %} bg-emerald-500
+                                            {% elif emp_data.status == 'in_progress' %} bg-amber-500
+                                            {% elif emp_data.status == 'started' %} bg-sky-500
+                                            {% else %} bg-slate-200 {% endif %}"
+                                            style="width: {{ emp_data.progress_pct }}%">
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- Submitted At -->
+                            <td class="py-4 px-4 text-xs">
+                                {% if emp_data.latest_submitted_at %}
+                                <div class="flex items-center gap-1.5 text-slate-600 font-medium">
+                                    <i class="fa-regular fa-calendar-check text-[#5D87FF]"></i>
+                                    <span>{{ emp_data.latest_submitted_at|date:"M d, Y - H:i" }}</span>
+                                </div>
+                                {% else %}
+                                <span class="text-slate-400 italic flex items-center gap-1">
+                                    <i class="fa-regular fa-hourglass text-slate-300 text-[11px]"></i> Pending
+                                </span>
+                                {% endif %}
+                            </td>
+
+                            <!-- Avg Rating Given -->
+                            <td class="py-4 px-4">
+                                {% if emp_data.avg_score_given %}
+                                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold
+                                    {% if emp_data.avg_score_given >= 4 %} bg-emerald-50 text-emerald-600 border border-emerald-100
+                                    {% elif emp_data.avg_score_given >= 2.5 %} bg-amber-50 text-amber-600 border border-amber-100
+                                    {% else %} bg-rose-50 text-rose-600 border border-rose-100 {% endif %}">
+                                    <i class="fa-solid fa-star text-[10px]"></i>
+                                    {{ emp_data.avg_score_given }} / 5.0
+                                </span>
+                                {% else %}
+                                <span class="text-slate-300 text-xs font-semibold">&mdash;</span>
+                                {% endif %}
+                            </td>
+
+                            <!-- Toggle Peer Breakdown Details -->
+                            <td class="py-4 px-6 text-right">
+                                {% if emp_data.total_peers > 0 %}
+                                <button type="button"
+                                        onclick="togglePeerDetails('peer-details-{{ udata.unit.id }}-{{ emp_data.employee.id }}')"
+                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 text-slate-600 hover:bg-[#5D87FF] hover:text-white border border-slate-200/80 text-xs font-semibold transition cursor-pointer">
+                                    <span>Peers ({{ emp_data.completed_peers_count }}/{{ emp_data.total_peers }})</span>
+                                    <i class="fa-solid fa-chevron-down text-[10px] transition-transform duration-200" id="icon-peer-details-{{ udata.unit.id }}-{{ emp_data.employee.id }}"></i>
+                                </button>
+                                {% else %}
+                                <span class="text-xs text-slate-400">No peers</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+
+                        <!-- Expandable Sub-Row: Peers Breakdown -->
+                        <tr id="peer-details-{{ udata.unit.id }}-{{ emp_data.employee.id }}" class="hidden bg-slate-50/70 border-b border-slate-100">
+                            <td colspan="6" class="px-8 py-4">
+                                <div class="bg-white rounded-2xl p-4 border border-slate-200/70 shadow-2xs space-y-3">
+                                    <div class="flex items-center justify-between">
+                                        <h5 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                                            <i class="fa-solid fa-user-group text-[#5D87FF]"></i>
+                                            Peers in {{ udata.unit.name }} evaluated by {{ emp_data.employee.get_full_name|default:emp_data.employee.username }}
+                                        </h5>
+                                        <span class="text-[11px] text-slate-400">
+                                            {{ emp_data.completed_peers_count }} of {{ emp_data.total_peers }} completed
+                                        </span>
+                                    </div>
+
+                                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        {% for pitem in emp_data.peers_breakdown %}
+                                        <div class="p-3 rounded-xl border flex items-center justify-between gap-3
+                                            {% if pitem.is_evaluated %} bg-emerald-50/30 border-emerald-100
+                                            {% else %} bg-slate-50/40 border-slate-200/60 {% endif %}">
+                                            <div class="flex items-center gap-2.5 min-w-0">
+                                                <img src="{{ pitem.peer.avatar_url|default:'https://api.dicebear.com/7.x/bottts/svg?seed=peer' }}"
+                                                     class="w-7 h-7 rounded-lg bg-slate-100 border border-slate-200 object-cover flex-shrink-0">
+                                                <div class="min-w-0">
+                                                    <p class="text-xs font-bold text-slate-700 truncate">
+                                                        {{ pitem.peer.get_full_name|default:pitem.peer.username }}
+                                                    </p>
+                                                    <p class="text-[10px] text-slate-400 truncate">{{ pitem.peer.job_title|default:"Staff" }}</p>
+                                                </div>
+                                            </div>
+
+                                            <div class="text-right flex-shrink-0">
+                                                {% if pitem.is_evaluated %}
+                                                <div class="flex items-center gap-1.5">
+                                                    <span class="text-xs font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
+                                                        ★ {{ pitem.avg_score }}
+                                                    </span>
+                                                    <a href="{% url 'evaluations:admin_submission_detail' pitem.submission.id %}"
+                                                       title="View Full Rating"
+                                                       class="w-6 h-6 rounded-lg bg-blue-50 text-[#5D87FF] hover:bg-[#5D87FF] hover:text-white flex items-center justify-center text-xs transition">
+                                                        <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                                                    </a>
+                                                </div>
+                                                <p class="text-[9px] text-slate-400 mt-0.5">{{ pitem.submitted_at|date:"M d" }}</p>
+                                                {% else %}
+                                                <span class="text-[11px] font-semibold text-slate-400 bg-white px-2 py-0.5 rounded border border-slate-200">
+                                                    Pending
+                                                </span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
-        {% else %}
-        <div class="p-8 text-center text-slate-400 text-xs">
-            No employees have submitted ratings for this evaluation yet.
+        {% empty %}
+        <div class="bg-white rounded-3xl p-12 text-center border border-slate-100 shadow-sm text-slate-400 text-sm">
+            <i class="fa-solid fa-hospital-user text-3xl mb-3 text-slate-300 block"></i>
+            No care units tagged to this evaluation.
         </div>
-        {% endif %}
+        {% endfor %}
     </div>
 </div>
+
+<script>
+function togglePeerDetails(rowId) {
+    const row = document.getElementById(rowId);
+    const icon = document.getElementById('icon-' + rowId);
+    if (!row) return;
+    if (row.classList.contains('hidden')) {
+        row.classList.remove('hidden');
+        if (icon) icon.classList.add('rotate-180');
+    } else {
+        row.classList.add('hidden');
+        if (icon) icon.classList.remove('rotate-180');
+    }
+}
+</script>
+
 {% endblock %}

@@ -47,13 +47,16 @@
                         </span>
                     </div>
                     <h2 class="text-xl font-bold text-slate-800">{{ item.evaluation.title }}</h2>
-                    <p class="text-xs text-slate-500 mt-1">
-                        Template: <strong class="text-slate-700">{{ item.evaluation.template.title }}</strong> &bull;
-                        Units:
-                        {% for u in item.evaluation.units.all %}
-                            <span class="font-medium text-slate-700">{{ u.name }}</span>{% if not forloop.last %}, {% endif %}
-                        {% endfor %}
+                    <p class="text-xs text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
+                        <span>Template: <strong class="text-slate-700">{{ item.evaluation.template.title }}</strong></span>
+                        <span>&bull;</span>
+                        <span>Started: <strong class="text-slate-700">{{ item.evaluation.start_date|date:"M d, Y" }}</strong></span>
+                        {% if item.evaluation.end_date %}
+                        <span>&bull;</span>
+                        <span class="inline-flex items-center gap-1 text-slate-600"><i class="fa-regular fa-clock text-[10px] text-amber-500"></i> Due: <strong class="text-slate-700">{{ item.evaluation.end_date|date:"M d, Y" }}</strong></span>
+                        {% endif %}
                     </p>
+
                 </div>
 
                 <!-- Progress Pill / Bar -->

@@ -1,86 +1,212 @@
 {% extends 'dashboard_base.html' %}
 
-{% block title %}Peer Submissions & Ratings Data - Tailwindadmin{% endblock %}
+{% block title %}Peer Submissions & Ratings History - Tailwindadmin{% endblock %}
 
 {% block page_content %}
 <div class="space-y-6">
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <div class="flex items-center gap-2">
-                <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">Peer Submissions & Ratings</h1>
+            <div class="flex items-center gap-2.5">
+                <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">Peer Submissions History</h1>
                 <span class="px-2.5 py-0.5 rounded-full bg-rose-50 text-rose-600 text-xs font-bold border border-rose-100">
                     Admin Confidential
                 </span>
             </div>
-            <p class="text-sm text-slate-500 mt-1">Review peer evaluations submitted across all care units and colleagues</p>
+            <p class="text-sm text-slate-500 mt-1">Review peer evaluations submitted across all care units, organized unit-wise</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <a href="{% url 'evaluations:evaluation_list' %}" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left text-[10px]"></i>
+                <span>Back to Evaluations</span>
+            </a>
         </div>
     </div>
 
-    <!-- Submissions Table -->
-    <div class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-            <h2 class="text-sm font-bold text-slate-700">All Peer Submissions ({{ submissions.count }})</h2>
+    <!-- Summary Stats Bar -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-2xs flex items-center gap-3.5">
+            <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-lg">
+                <i class="fa-solid fa-hospital-user"></i>
+            </div>
+            <div>
+                <span class="text-[11px] text-slate-400 font-semibold uppercase">Participating Units</span>
+                <p class="text-lg font-black text-slate-800">{{ unit_groups|length }} Care Units</p>
+            </div>
         </div>
 
-        {% if submissions %}
-        <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
-                <thead>
-                    <tr class="bg-slate-50/70 text-slate-400 text-[11px] font-bold uppercase tracking-wider border-b border-slate-100">
-                        <th class="py-3.5 px-6">Evaluator (Staff)</th>
-                        <th class="py-3.5 px-4">Colleague Evaluated</th>
-                        <th class="py-3.5 px-4">Evaluation</th>
-                        <th class="py-3.5 px-4">Care Unit</th>
-                        <th class="py-3.5 px-4">Average Score</th>
-                        <th class="py-3.5 px-4">Date</th>
-                        <th class="py-3.5 px-6 text-right">Action</th>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100 text-sm">
-                    {% for sub in submissions %}
-                    <tr class="hover:bg-slate-50/50 transition">
-                        <td class="py-4 px-6">
-                            <span class="font-bold text-slate-800">{{ sub.evaluator.get_full_name|default:sub.evaluator.username }}</span>
-                            <p class="text-xs text-slate-400">@{{ sub.evaluator.username }}</p>
-                        </td>
-                        <td class="py-4 px-4">
-                            <span class="font-bold text-blue-600">{{ sub.evaluatee.get_full_name|default:sub.evaluatee.username }}</span>
-                            <p class="text-xs text-slate-400">@{{ sub.evaluatee.username }}</p>
-                        </td>
-                        <td class="py-4 px-4 font-semibold text-slate-800">
-                            {{ sub.evaluation.title }}
-                        </td>
-                        <td class="py-4 px-4 text-xs font-semibold text-slate-600">
-                            {{ sub.unit.name|default:"General" }}
-                        </td>
-                        <td class="py-4 px-4">
-                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold
-                                {% if sub.average_score >= 4 %} bg-emerald-50 text-emerald-600
-                                {% elif sub.average_score >= 2.5 %} bg-amber-50 text-amber-600
-                                {% else %} bg-rose-50 text-rose-600 {% endif %}">
-                                <i class="fa-solid fa-star text-[10px]"></i>
-                                {{ sub.average_score }} / 5.0
+        <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-2xs flex items-center gap-3.5">
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg">
+                <i class="fa-solid fa-clipboard-check"></i>
+            </div>
+            <div>
+                <span class="text-[11px] text-slate-400 font-semibold uppercase">Total Peer Submissions</span>
+                <p class="text-lg font-black text-slate-800">{{ total_submissions }} Submissions</p>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-2xs flex items-center gap-3.5">
+            <div class="w-10 h-10 rounded-xl bg-blue-50 text-[#5D87FF] flex items-center justify-center text-lg">
+                <i class="fa-solid fa-layer-group"></i>
+            </div>
+            <div>
+                <span class="text-[11px] text-slate-400 font-semibold uppercase">Presentation Format</span>
+                <p class="text-lg font-black text-slate-800">Unit-Wise Cards</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter & Search Bar -->
+    <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <!-- Unit Pills -->
+        <div class="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
+            <a href="{% url 'evaluations:admin_submissions_list' %}"
+               class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {% if not selected_unit_id %}bg-[#5D87FF] text-white shadow-sm shadow-blue-500/20{% else %}bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/80{% endif %}">
+                All Units ({{ total_submissions }})
+            </a>
+            {% for u in all_units %}
+            <a href="{% url 'evaluations:admin_submissions_list' %}?unit={{ u.id }}"
+               class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {% if selected_unit_id == u.id|stringformat:'s' %}bg-[#5D87FF] text-white shadow-sm shadow-blue-500/20{% else %}bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/80{% endif %}">
+                {{ u.name }}
+            </a>
+            {% endfor %}
+        </div>
+
+        <!-- Search Input -->
+        <div class="relative w-full md:w-72 flex-shrink-0">
+            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+            <input type="text"
+                   id="admin-submission-search"
+                   placeholder="Search colleague, evaluator, or evaluation..."
+                   oninput="filterAdminSubmissions(this.value)"
+                   class="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-[#5D87FF]/20 focus:border-[#5D87FF] transition">
+        </div>
+    </div>
+
+    <!-- Unit-wise Cards List (Matching My Evaluations Design) -->
+    <div class="space-y-6" id="admin-unit-groups-container">
+        {% for group in unit_groups %}
+        <div class="admin-unit-card bg-white rounded-3xl border border-slate-100 shadow-sm p-6 sm:p-7 space-y-6" data-unit-name="{{ group.unit_name|lower }}">
+            <!-- Unit Header Info -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
+                <div>
+                    <div class="flex items-center gap-2.5 mb-1.5 flex-wrap">
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-[#5D87FF] border border-blue-100 flex items-center gap-1.5">
+                            <i class="fa-solid fa-clipboard-user text-[11px]"></i>
+                            {{ group.count }} Submission{{ group.count|pluralize }} Recorded
+                        </span>
+                        <span class="text-xs text-slate-400 font-medium flex items-center gap-1">
+                            <i class="fa-solid fa-star text-amber-400 text-[11px]"></i>
+                            Unit Average: <strong class="text-slate-700">{{ group.avg_score }} / 5.0</strong>
+                        </span>
+                    </div>
+                    <h2 class="text-xl font-extrabold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-door-open text-slate-400 text-sm"></i>
+                        {{ group.unit_name }}
+                    </h2>
+                    <p class="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                        <i class="fa-solid fa-location-dot text-[11px]"></i>
+                        <span>Location: {{ group.unit_place }}</span>
+                        {% if group.unit %}
+                        <span>&bull;</span>
+                        <span>{{ group.unit.users.count }} Staff Members</span>
+                        {% endif %}
+                    </p>
+                </div>
+
+                <!-- Unit Peer Progress Bar / Summary -->
+                <div class="sm:text-right min-w-[180px]">
+                    <div class="text-xs font-bold text-slate-500 mb-1 flex items-center justify-between sm:justify-end gap-2">
+                        <span>Unit Peer Reviews</span>
+                        <span class="text-[#5D87FF] font-extrabold">{{ group.count }} Done</span>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                        <div class="bg-[#5D87FF] h-2.5 rounded-full w-full"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Colleagues Evaluated in this Unit -->
+            <div>
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
+                    Colleague Peer Reviews in this Unit ({{ group.count }})
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {% for sub in group.submissions %}
+                    <div class="submission-item-card p-4 rounded-2xl border border-slate-200/80 bg-slate-50/60 hover:bg-white hover:shadow-sm transition-all duration-200 flex items-center justify-between gap-4"
+                         data-search-text="{{ sub.evaluatee.get_full_name|lower }} {{ sub.evaluatee.username|lower }} {{ sub.evaluator.get_full_name|lower }} {{ sub.evaluator.username|lower }} {{ sub.evaluation.title|lower }}">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <!-- Avatar Letter Initial -->
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0 bg-blue-100 text-blue-700 border border-blue-200">
+                                {{ sub.evaluatee.first_name|default:sub.evaluatee.username|slice:":1"|upper }}
+                            </div>
+                            <div class="min-w-0">
+                                <h4 class="text-sm font-bold text-slate-800 truncate">
+                                    {{ sub.evaluatee.get_full_name|default:sub.evaluatee.username }}
+                                </h4>
+                                <p class="text-[11px] text-slate-500 truncate">
+                                    {{ sub.evaluatee.job_title|default:sub.evaluatee.role|capfirst }} &bull; @{{ sub.evaluatee.username }}
+                                </p>
+                                <p class="text-[11px] text-slate-600 mt-1 truncate">
+                                    <span class="text-slate-400">Reviewed by:</span> <strong class="text-slate-700">{{ sub.evaluator.get_full_name|default:sub.evaluator.username }}</strong>
+                                </p>
+                                <p class="text-[10px] text-slate-400 mt-0.5 truncate">
+                                    {{ sub.evaluation.title }} &bull; {{ sub.submitted_at|date:"M d, Y - H:i" }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Rating Score & Action Button -->
+                        <div class="flex items-center gap-2 flex-shrink-0">
+                            <span class="text-xs font-bold text-emerald-700 bg-emerald-100/80 px-2.5 py-1 rounded-lg flex items-center gap-1 border border-emerald-200">
+                                <i class="fa-solid fa-star text-[10px] text-amber-500"></i> {{ sub.average_score }}/5
                             </span>
-                        </td>
-                        <td class="py-4 px-4 text-xs text-slate-500">
-                            {{ sub.submitted_at|date:"M d, Y H:i" }}
-                        </td>
-                        <td class="py-4 px-6 text-right">
-                            <a href="{% url 'evaluations:admin_submission_detail' sub.id %}" class="px-3 py-1.5 rounded-lg bg-blue-50 text-[#5D87FF] hover:bg-blue-600 hover:text-white text-xs font-semibold transition">
-                                View Ratings &rarr;
+                            <a href="{% url 'evaluations:admin_submission_detail' sub.id %}"
+                               class="px-3 py-1.5 rounded-xl bg-[#5D87FF] hover:bg-[#4570ea] text-white text-xs font-bold shadow-sm shadow-blue-500/20 transition flex items-center gap-1.5 whitespace-nowrap active:scale-95">
+                                <span>View Ratings</span>
+                                <i class="fa-solid fa-arrow-right text-[10px]"></i>
                             </a>
-                        </td>
-                    </tr>
+                        </div>
+                    </div>
                     {% endfor %}
-                </tbody>
-            </table>
+                </div>
+            </div>
         </div>
-        {% else %}
-        <div class="p-12 text-center text-slate-400 text-xs">
-            No peer submissions recorded in the system yet.
+        {% empty %}
+        <div class="bg-white rounded-3xl p-12 text-center border border-slate-100">
+            <div class="w-14 h-14 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3 text-xl">
+                <i class="fa-solid fa-clipboard-list"></i>
+            </div>
+            <h3 class="font-bold text-slate-700">No Peer Submissions Recorded Yet</h3>
+            <p class="text-xs text-slate-400 mt-1">Once employees evaluate colleagues in their units, submissions will be grouped here unit-wise.</p>
         </div>
-        {% endif %}
+        {% endfor %}
     </div>
 </div>
+
+<script>
+function filterAdminSubmissions(query) {
+    const q = query.toLowerCase().trim();
+    document.querySelectorAll('.admin-unit-card').forEach(unitCard => {
+        let visibleCount = 0;
+        unitCard.querySelectorAll('.submission-item-card').forEach(itemCard => {
+            const text = itemCard.getAttribute('data-search-text') || '';
+            if (!q || text.includes(q)) {
+                itemCard.classList.remove('hidden');
+                visibleCount++;
+            } else {
+                itemCard.classList.add('hidden');
+            }
+        });
+
+        // Hide unit card if all items inside are hidden
+        if (visibleCount > 0 || !q) {
+            unitCard.classList.remove('hidden');
+        } else {
+            unitCard.classList.add('hidden');
+        }
+    });
+}
+</script>
 {% endblock %}
