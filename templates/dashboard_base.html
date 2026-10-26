@@ -81,6 +81,17 @@
                         </div>
                     </a>
 
+                    <!-- Employees -->
+                    <a href="{% url 'employees:list' %}"
+                       class="flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-sm transition group {% if active_menu == 'employees' %}bg-[#5D87FF] text-white shadow-md shadow-blue-500/20{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+                        <div class="flex items-center gap-3">
+                            <div class="w-5 h-5 flex items-center justify-center">
+                                <i class="fa-solid fa-user-tie text-sm"></i>
+                            </div>
+                            <span>Employees</span>
+                        </div>
+                    </a>
+
                     <!-- User Submissions (Admin Only) -->
                     <a href="{% url 'evaluations:admin_submissions_list' %}"
                        class="flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-sm transition group {% if active_menu == 'submissions' %}bg-[#5D87FF] text-white shadow-md shadow-blue-500/20{% else %}text-slate-600 hover:bg-slate-50{% endif %}">

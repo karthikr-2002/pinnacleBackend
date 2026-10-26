@@ -1,0 +1,79 @@
+{% extends 'dashboard_base.html' %}
+
+{% block title %}Employees - Tailwindadmin{% endblock %}
+
+{% block page_content %}
+<div class="space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">Employees</h1>
+            <p class="text-sm text-slate-500 mt-1">Create staff accounts and assign each employee to a care unit</p>
+        </div>
+        <a href="{% url 'employees:create' %}" class="px-4 py-2.5 rounded-xl bg-[#5D87FF] hover:bg-[#4570ea] text-white text-xs font-semibold shadow-md shadow-blue-500/20 transition flex items-center gap-2">
+            <i class="fa-solid fa-user-plus"></i>
+            <span>Add Employee</span>
+        </a>
+    </div>
+
+    <div class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <h2 class="text-sm font-bold text-slate-700">All Employees ({{ employees|length }})</h2>
+        </div>
+
+        {% if employees %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50/70 text-slate-400 text-[11px] font-bold uppercase tracking-wider border-b border-slate-100">
+                        <th class="py-3.5 px-6">Employee</th>
+                        <th class="py-3.5 px-4">Employee ID</th>
+                        <th class="py-3.5 px-4">Email</th>
+                        <th class="py-3.5 px-4">Contact</th>
+                        <th class="py-3.5 px-6">Unit</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-sm">
+                    {% for employee in employees %}
+                    <tr class="hover:bg-slate-50/50 transition">
+                        <td class="py-4 px-6">
+                            <div class="flex items-center gap-3">
+                                <img src="{{ employee.photo_url }}"
+                                     alt="{{ employee.display_name }}"
+                                     class="w-10 h-10 rounded-xl object-cover border border-slate-200 bg-slate-50">
+                                <div>
+                                    <p class="font-bold text-slate-800">{{ employee.display_name }}</p>
+                                    <p class="text-xs text-slate-400">{{ employee.job_title|default:"Care Staff" }}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4 font-semibold text-slate-700">{{ employee.employee_id|default:"—" }}</td>
+                        <td class="py-4 px-4 text-slate-600">{{ employee.email|default:"—" }}</td>
+                        <td class="py-4 px-4 text-slate-600">{{ employee.phone|default:"—" }}</td>
+                        <td class="py-4 px-6">
+                            <div class="flex flex-wrap gap-1.5">
+                                {% for unit in employee.assigned_units.all %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-md bg-blue-50 border border-blue-100 text-xs text-[#5D87FF] font-semibold">
+                                    {{ unit.name }}
+                                </span>
+                                {% empty %}
+                                <span class="text-xs text-slate-400 italic">Unassigned</span>
+                                {% endfor %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-12 text-center">
+            <h3 class="font-bold text-slate-800">No employees yet</h3>
+            <p class="text-xs text-slate-500 mt-1">Create an employee account and assign them to a care unit.</p>
+            <a href="{% url 'employees:create' %}" class="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#5D87FF] text-white text-xs font-semibold rounded-xl">
+                Add Employee
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
