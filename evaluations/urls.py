@@ -12,6 +12,8 @@ urlpatterns = [
     path('templates/create/', views.template_create, name='template_create'),
     path('units/', views.unit_list, name='unit_list'),
     path('units/create/', views.unit_create, name='unit_create'),
+    path('units/<int:pk>/', views.unit_detail, name='unit_detail'),
+    path('units/<int:pk>/edit/', views.unit_edit, name='unit_edit'),
     path('submissions/', views.admin_submissions_list, name='admin_submissions_list'),
     path('submissions/<int:pk>/', views.admin_submission_detail, name='admin_submission_detail'),
 

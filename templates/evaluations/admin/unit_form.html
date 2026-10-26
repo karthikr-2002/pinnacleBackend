@@ -1,16 +1,22 @@
 {% extends 'dashboard_base.html' %}
 
-{% block title %}Create Care Unit - Tailwindadmin{% endblock %}
+{% block title %}{{ title }} - Tailwindadmin{% endblock %}
 
 {% block page_content %}
 <div class="max-w-2xl mx-auto space-y-6">
     <!-- Breadcrumb & Header -->
     <div>
+        {% if unit %}
+        <a href="{% url 'evaluations:unit_detail' unit.pk %}" class="text-xs font-semibold text-[#5D87FF] hover:underline flex items-center gap-1.5 mb-2">
+            <i class="fa-solid fa-arrow-left text-[10px]"></i> Back to {{ unit.name }}
+        </a>
+        {% else %}
         <a href="{% url 'evaluations:unit_list' %}" class="text-xs font-semibold text-[#5D87FF] hover:underline flex items-center gap-1.5 mb-2">
             <i class="fa-solid fa-arrow-left text-[10px]"></i> Back to Units
         </a>
+        {% endif %}
         <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">{{ title }}</h1>
-        <p class="text-sm text-slate-500 mt-1">Add a new unit and assign employees who will participate in unit evaluations.</p>
+        <p class="text-sm text-slate-500 mt-1">{{ subtitle }}</p>
     </div>
 
     <!-- Form Card -->
@@ -30,297 +36,23 @@
                 {% if form.place.errors %}<p class="text-xs text-rose-500 mt-1">{{ form.place.errors.0 }}</p>{% endif %}
             </div>
 
-            <!-- Assign Employees (Radio Buttons + Multi-Select) -->
-            <div>
-                <div class="flex items-center justify-between mb-1.5">
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                        Assign Employees
-                    </label>
-                    <span class="text-[11px] text-[#5D87FF] font-semibold flex items-center gap-1.5 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-100">
-                        <i class="fa-solid fa-users text-[10px]"></i>
-                        <span id="selected-count-badge">{{ employees|length }} / {{ employees|length }} Selected</span>
-                    </span>
-                </div>
-                <p class="text-xs text-slate-400 mb-3">
-                    Choose whether this care unit includes all employees across the home or a specific team of members.
-                </p>
-
-                <!-- Hidden inputs synced with JS -->
-                <input type="hidden" name="all_employees" id="input-all-employees" value="true">
-
-                <!-- 1. Top Radio Selection: All vs Specific -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3" id="emp-mode-radios">
-                    <!-- Radio 1: All Employees -->
-                    <label class="mode-card flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer transition border-[#5D87FF] bg-blue-50/40 shadow-2xs" id="mode-card-all">
-                        <input type="radio" 
-                               name="assignment_mode" 
-                               value="all" 
-                               id="radio-mode-all"
-                               checked 
-                               onchange="handleModeChange('all')"
-                               class="mt-1 w-4 h-4 text-[#5D87FF] focus:ring-[#5D87FF] border-slate-300 cursor-pointer">
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center justify-between gap-1">
-                                <span class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                                    <i class="fa-solid fa-users text-[#5D87FF] text-xs"></i>
-                                    All Employees
-                                </span>
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-[#5D87FF] text-white">
-                                    All ({{ employees|length }})
-                                </span>
-                            </div>
-                            <p class="text-xs text-slate-500 mt-0.5">
-                                Facility-wide assignment across the home.
-                            </p>
-                        </div>
-                    </label>
-
-                    <!-- Radio 2: Specific Employees (Multi-Select) -->
-                    <label class="mode-card flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer transition border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50" id="mode-card-specific">
-                        <input type="radio" 
-                               name="assignment_mode" 
-                               value="specific" 
-                               id="radio-mode-specific"
-                               onchange="handleModeChange('specific')"
-                               class="mt-1 w-4 h-4 text-[#5D87FF] focus:ring-[#5D87FF] border-slate-300 cursor-pointer">
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center justify-between gap-1">
-                                <span class="text-sm font-bold text-slate-800 flex items-center gap-1.5">
-                                    <i class="fa-solid fa-list-check text-slate-400 text-xs"></i>
-                                    Specific Staff
-                                </span>
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
-                                    Multi-Select
-                                </span>
-                            </div>
-                            <p class="text-xs text-slate-500 mt-0.5">
-                                Pick specific team members below.
-                            </p>
-                        </div>
-                    </label>
-                </div>
-
-                <!-- 2. Search & Filter Bar + Quick Select Controls -->
-                <div class="bg-slate-50/80 rounded-2xl p-2.5 border border-slate-200/80 mb-2.5">
-                    <div class="flex items-center justify-between gap-2.5">
-                        <div class="relative flex-1">
-                            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                            <input type="text" 
-                                   id="employee-search" 
-                                   placeholder="Filter staff by name or job role..." 
-                                   oninput="filterEmployees(this.value)"
-                                   class="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-[#5D87FF]/20 focus:border-[#5D87FF] transition placeholder:text-slate-400">
-                        </div>
-                        <div class="flex items-center gap-1.5 flex-shrink-0 text-xs">
-                            <button type="button" 
-                                    onclick="selectAllEmployees(true)" 
-                                    class="px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-[#5D87FF] bg-blue-50 hover:bg-blue-100 border border-blue-200/60 transition cursor-pointer flex items-center gap-1">
-                                <i class="fa-solid fa-check-double text-[10px]"></i>
-                                <span>Select All</span>
-                            </button>
-                            <button type="button" 
-                                    onclick="selectAllEmployees(false)" 
-                                    class="px-2.5 py-1.5 rounded-xl text-[11px] font-bold text-slate-600 bg-white hover:bg-slate-100 border border-slate-200 transition cursor-pointer flex items-center gap-1">
-                                <i class="fa-solid fa-xmark text-[10px]"></i>
-                                <span>Clear</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 3. Multi-Select Employee Cards List -->
-                <div class="space-y-2 max-h-[340px] overflow-y-auto pr-1" id="employee-list-container">
-                    {% for emp in employees %}
-                    <label class="emp-card flex items-start gap-3.5 p-3 rounded-2xl border cursor-pointer transition border-[#5D87FF] bg-blue-50/40 shadow-2xs" 
-                           id="card-emp-{{ emp.id }}"
-                           data-emp-name="{{ emp.get_full_name|default:emp.username|lower }}"
-                           data-emp-role="{{ emp.job_title|default:emp.role|lower }}"
-                           data-emp-username="{{ emp.username|lower }}">
-                        <input type="checkbox" 
-                               id="checkbox-emp-{{ emp.id }}"
-                               name="users" 
-                               value="{{ emp.id }}" 
-                               checked
-                               onchange="handleEmployeeToggle(this)"
-                               class="emp-checkbox mt-1 w-4 h-4 rounded text-[#5D87FF] focus:ring-[#5D87FF] border-slate-300 cursor-pointer">
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center justify-between gap-2">
-                                <div class="flex items-center gap-2.5 min-w-0">
-                                    <img src="{{ emp.avatar_url|default:'https://api.dicebear.com/7.x/bottts/svg?seed='|add:emp.username }}"
-                                         alt="{{ emp.username }}"
-                                         class="w-7 h-7 rounded-lg bg-slate-100 border border-slate-200 object-cover flex-shrink-0">
-                                    <span class="text-sm font-bold text-slate-800 truncate">
-                                        {{ emp.get_full_name|default:emp.username }}
-                                    </span>
-                                </div>
-                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 flex-shrink-0">
-                                    {{ emp.job_title|default:emp.role|capfirst }}
-                                </span>
-                            </div>
-                            <p class="text-xs text-slate-400 mt-1 flex items-center gap-2">
-                                <span>@{{ emp.username }}</span>
-                                {% if emp.assigned_units.exists %}
-                                <span>&bull;</span>
-                                <span class="text-slate-500 font-medium truncate">
-                                    {% for u in emp.assigned_units.all %}{{ u.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
-                                </span>
-                                {% endif %}
-                            </p>
-                        </div>
-                    </label>
-                    {% endfor %}
-                </div>
-
-                {% if form.users.errors %}
-                <p class="text-xs text-rose-500 mt-1.5">{{ form.users.errors.0 }}</p>
-                {% endif %}
-            </div>
-
             <!-- Form Action Buttons -->
             <div class="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+                {% if unit %}
+                <a href="{% url 'evaluations:unit_detail' unit.pk %}" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition">
+                    Cancel
+                </a>
+                {% else %}
                 <a href="{% url 'evaluations:unit_list' %}" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition">
                     Cancel
                 </a>
+                {% endif %}
                 <button type="submit" class="px-5 py-2.5 rounded-xl bg-[#5D87FF] hover:bg-[#4570ea] text-white text-xs font-semibold shadow-md shadow-blue-500/20 transition flex items-center gap-2 cursor-pointer">
                     <i class="fa-solid fa-check"></i>
-                    <span>Save Care Unit</span>
+                    <span>{% if unit %}Save Changes{% else %}Save Care Unit{% endif %}</span>
                 </button>
             </div>
         </form>
     </div>
 </div>
-
-<script>
-const TOTAL_EMPLOYEES = {{ employees|length }};
-
-function handleModeChange(mode) {
-    const radioAll = document.getElementById('radio-mode-all');
-    const radioSpecific = document.getElementById('radio-mode-specific');
-    const cardAll = document.getElementById('mode-card-all');
-    const cardSpecific = document.getElementById('mode-card-specific');
-    const inputAll = document.getElementById('input-all-employees');
-
-    if (mode === 'all') {
-        radioAll.checked = true;
-        cardAll.classList.remove('border-slate-200', 'bg-white');
-        cardAll.classList.add('border-[#5D87FF]', 'bg-blue-50/40', 'shadow-2xs');
-
-        cardSpecific.classList.remove('border-[#5D87FF]', 'bg-blue-50/40', 'shadow-2xs');
-        cardSpecific.classList.add('border-slate-200', 'bg-white');
-
-        inputAll.value = 'true';
-
-        // Select all employee checkboxes
-        document.querySelectorAll('.emp-checkbox').forEach(cb => {
-            cb.checked = true;
-            updateEmpCardStyle(cb);
-        });
-    } else {
-        radioSpecific.checked = true;
-        cardSpecific.classList.remove('border-slate-200', 'bg-white');
-        cardSpecific.classList.add('border-[#5D87FF]', 'bg-blue-50/40', 'shadow-2xs');
-
-        cardAll.classList.remove('border-[#5D87FF]', 'bg-blue-50/40', 'shadow-2xs');
-        cardAll.classList.add('border-slate-200', 'bg-white');
-
-        inputAll.value = 'false';
-    }
-    updateSelectedCountBadge();
-}
-
-function handleEmployeeToggle(empCheckbox) {
-    updateEmpCardStyle(empCheckbox);
-
-    const empCheckboxes = Array.from(document.querySelectorAll('.emp-checkbox'));
-    const checkedCount = empCheckboxes.filter(cb => cb.checked).length;
-    const allChecked = checkedCount === empCheckboxes.length;
-
-    const radioAll = document.getElementById('radio-mode-all');
-    const radioSpecific = document.getElementById('radio-mode-specific');
-    const cardAll = document.getElementById('mode-card-all');
-    const cardSpecific = document.getElementById('mode-card-specific');
-    const inputAll = document.getElementById('input-all-employees');
-
-    if (allChecked) {
-        radioAll.checked = true;
-        cardAll.classList.remove('border-slate-200', 'bg-white');
-        cardAll.classList.add('border-[#5D87FF]', 'bg-blue-50/40', 'shadow-2xs');
-
-        cardSpecific.classList.remove('border-[#5D87FF]', 'bg-blue-50/40', 'shadow-2xs');
-        cardSpecific.classList.add('border-slate-200', 'bg-white');
-
-        inputAll.value = 'true';
-    } else {
-        radioSpecific.checked = true;
-        cardSpecific.classList.remove('border-slate-200', 'bg-white');
-        cardSpecific.classList.add('border-[#5D87FF]', 'bg-blue-50/40', 'shadow-2xs');
-
-        cardAll.classList.remove('border-[#5D87FF]', 'bg-blue-50/40', 'shadow-2xs');
-        cardAll.classList.add('border-slate-200', 'bg-white');
-
-        inputAll.value = 'false';
-    }
-    updateSelectedCountBadge();
-}
-
-function updateEmpCardStyle(checkbox) {
-    const card = checkbox.closest('.emp-card');
-    if (!card) return;
-    if (checkbox.checked) {
-        card.classList.remove('border-slate-200', 'bg-white');
-        card.classList.add('border-[#5D87FF]', 'bg-blue-50/40', 'shadow-2xs');
-    } else {
-        card.classList.remove('border-[#5D87FF]', 'bg-blue-50/40', 'shadow-2xs');
-        card.classList.add('border-slate-200', 'bg-white');
-    }
-}
-
-function selectAllEmployees(select) {
-    const empCheckboxes = document.querySelectorAll('.emp-checkbox');
-    empCheckboxes.forEach(cb => {
-        // Only modify cards that are not hidden by search filter
-        const card = cb.closest('.emp-card');
-        if (!card.classList.contains('hidden')) {
-            cb.checked = select;
-            updateEmpCardStyle(cb);
-        }
-    });
-
-    if (select) {
-        handleModeChange('all');
-    } else {
-        handleModeChange('specific');
-    }
-}
-
-function filterEmployees(term) {
-    const query = term.toLowerCase().trim();
-    document.querySelectorAll('.emp-card').forEach(card => {
-        const name = card.getAttribute('data-emp-name') || '';
-        const role = card.getAttribute('data-emp-role') || '';
-        const username = card.getAttribute('data-emp-username') || '';
-
-        if (!query || name.includes(query) || role.includes(query) || username.includes(query)) {
-            card.classList.remove('hidden');
-        } else {
-            card.classList.add('hidden');
-        }
-    });
-}
-
-function updateSelectedCountBadge() {
-    const checkedCount = document.querySelectorAll('.emp-checkbox:checked').length;
-    const badge = document.getElementById('selected-count-badge');
-    if (badge) {
-        badge.textContent = `${checkedCount} / ${TOTAL_EMPLOYEES} Selected`;
-    }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('.emp-checkbox').forEach(cb => {
-        updateEmpCardStyle(cb);
-    });
-    updateSelectedCountBadge();
-});
-</script>
 {% endblock %}

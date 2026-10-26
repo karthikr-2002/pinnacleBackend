@@ -291,7 +291,7 @@ def template_create(request):
 
 @login_required(login_url='users:login')
 def unit_list(request):
-    """Admin view: List all care units and their assigned employees."""
+    """Admin view: List all care units. Select a unit to view its employees."""
     if not is_admin(request.user):
         raise PermissionDenied("Only administrators can view units.")
 
@@ -303,8 +303,26 @@ def unit_list(request):
 
 
 @login_required(login_url='users:login')
+def unit_detail(request, pk):
+    """Admin view: Show employees assigned to a selected care unit."""
+    if not is_admin(request.user):
+        raise PermissionDenied("Only administrators can view units.")
+
+    unit = get_object_or_404(
+        Unit.objects.prefetch_related('users', 'evaluations'),
+        pk=pk,
+    )
+    employees = unit.users.all().order_by('first_name', 'last_name', 'username')
+    return render(request, 'evaluations/admin/unit_detail.html', {
+        'unit': unit,
+        'employees': employees,
+        'active_menu': 'units',
+    })
+
+
+@login_required(login_url='users:login')
 def unit_create(request):
-    """Admin view: Create a new care unit and assign users."""
+    """Admin view: Create a new care unit. Staff are assigned from the employee page."""
     if not is_admin(request.user):
         raise PermissionDenied("Only administrators can create units.")
 
@@ -313,16 +331,40 @@ def unit_create(request):
         if form.is_valid():
             unit = form.save()
             messages.success(request, f"Unit '{unit.name}' created successfully!")
-            return redirect('evaluations:unit_list')
+            return redirect('evaluations:unit_detail', pk=unit.pk)
     else:
         form = UnitForm()
 
-    employees = User.objects.all().prefetch_related('assigned_units')
     return render(request, 'evaluations/admin/unit_form.html', {
         'form': form,
         'title': 'Create Care Unit',
+        'subtitle': 'Add a care unit. Assign each employee to one unit from the employee page.',
         'active_menu': 'units',
-        'employees': employees,
+    })
+
+
+@login_required(login_url='users:login')
+def unit_edit(request, pk):
+    """Admin view: Update a care unit name and location."""
+    if not is_admin(request.user):
+        raise PermissionDenied("Only administrators can edit units.")
+
+    unit = get_object_or_404(Unit, pk=pk)
+    if request.method == 'POST':
+        form = UnitForm(request.POST, instance=unit)
+        if form.is_valid():
+            unit = form.save()
+            messages.success(request, f"Unit '{unit.name}' updated successfully!")
+            return redirect('evaluations:unit_detail', pk=unit.pk)
+    else:
+        form = UnitForm(instance=unit)
+
+    return render(request, 'evaluations/admin/unit_form.html', {
+        'form': form,
+        'unit': unit,
+        'title': 'Edit Care Unit',
+        'subtitle': 'Update this unit name or location. Staff stay assigned from the employee page.',
+        'active_menu': 'units',
     })
 
 

@@ -73,6 +73,45 @@ class EvaluationSystemTests(TestCase):
         self.assertEqual(self.template.evaluations.count(), 2)
         self.assertEqual(self.template.questions.count(), 3)
 
+    def test_admin_create_unit_does_not_assign_staff(self):
+        self.client.login(username='superadmin', password='Password123!')
+        response = self.client.get(reverse('evaluations:unit_create'))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'Assign Employees')
+        self.assertNotContains(response, 'Specific Staff')
+
+        response = self.client.post(reverse('evaluations:unit_create'), {
+            'name': 'Moonlight Ward',
+            'place': 'Building D',
+            'all_employees': 'true',
+            'users': [self.staff1.id, self.staff2.id],
+        })
+        self.assertEqual(response.status_code, 302)
+        unit = Unit.objects.get(name='Moonlight Ward')
+        self.assertEqual(unit.users.count(), 0)
+        self.assertTrue(self.unit_sunrise.users.filter(id=self.staff1.id).exists())
+
+    def test_admin_can_view_unit_employees_and_edit_unit(self):
+        self.client.login(username='superadmin', password='Password123!')
+        list_res = self.client.get(reverse('evaluations:unit_list'))
+        self.assertEqual(list_res.status_code, 200)
+        self.assertContains(list_res, 'Sunrise Wing')
+        self.assertContains(list_res, 'Edit')
+
+        detail_res = self.client.get(reverse('evaluations:unit_detail', args=[self.unit_sunrise.id]))
+        self.assertEqual(detail_res.status_code, 200)
+        self.assertContains(detail_res, 'Sarah Jenkins')
+        self.assertContains(detail_res, 'Edit Care Unit')
+
+        edit_res = self.client.post(reverse('evaluations:unit_edit', args=[self.unit_sunrise.id]), {
+            'name': 'Sunrise Wing West',
+            'place': 'Building A - Level 3',
+        })
+        self.assertEqual(edit_res.status_code, 302)
+        self.unit_sunrise.refresh_from_db()
+        self.assertEqual(self.unit_sunrise.name, 'Sunrise Wing West')
+        self.assertEqual(self.unit_sunrise.place, 'Building A - Level 3')
+
     def test_admin_can_create_evaluation(self):
         self.client.login(username='superadmin', password='Password123!')
         response = self.client.post(reverse('evaluations:evaluation_create'), {

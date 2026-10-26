@@ -1,0 +1,95 @@
+{% extends 'dashboard_base.html' %}
+
+{% block title %}{{ unit.name }} - Care Unit{% endblock %}
+
+{% block page_content %}
+<div class="space-y-6">
+    <div>
+        <a href="{% url 'evaluations:unit_list' %}" class="text-xs font-semibold text-[#5D87FF] hover:underline flex items-center gap-1.5 mb-2">
+            <i class="fa-solid fa-arrow-left text-[10px]"></i> Back to Units
+        </a>
+        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div>
+                <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">{{ unit.name }}</h1>
+                <p class="text-sm text-slate-500 mt-1 flex items-center gap-1.5">
+                    <i class="fa-solid fa-location-dot text-slate-400 text-[11px]"></i>
+                    {{ unit.place }}
+                </p>
+                <div class="flex items-center gap-2 mt-3">
+                    <span class="px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 text-xs font-bold border border-purple-100">
+                        {{ employees|length }} Staff Assigned
+                    </span>
+                    <span class="px-2.5 py-1 rounded-full bg-slate-50 text-slate-600 text-xs font-semibold border border-slate-200">
+                        {{ unit.evaluations.count }} Evaluation(s)
+                    </span>
+                </div>
+            </div>
+            <a href="{% url 'evaluations:unit_edit' unit.pk %}"
+               class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-[#5D87FF] hover:border-blue-200 transition">
+                <i class="fa-solid fa-pen-to-square text-[11px]"></i>
+                Edit Care Unit
+            </a>
+        </div>
+    </div>
+
+    <div class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
+            <h2 class="text-sm font-bold text-slate-700">Employees in this unit</h2>
+            <a href="{% url 'employees:list' %}" class="text-xs font-semibold text-[#5D87FF] hover:underline">
+                Manage assignments on the employee page
+            </a>
+        </div>
+
+        {% if employees %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50/70 text-slate-400 text-[11px] font-bold uppercase tracking-wider border-b border-slate-100">
+                        <th class="py-3.5 px-6">Employee</th>
+                        <th class="py-3.5 px-4">Employee ID</th>
+                        <th class="py-3.5 px-4">Email</th>
+                        <th class="py-3.5 px-4">Contact</th>
+                        <th class="py-3.5 px-6 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-sm">
+                    {% for employee in employees %}
+                    <tr class="hover:bg-slate-50/50 transition">
+                        <td class="py-4 px-6">
+                            <div class="flex items-center gap-3">
+                                <img src="{{ employee.photo_url }}"
+                                     alt="{{ employee.display_name }}"
+                                     class="w-10 h-10 rounded-xl object-cover border border-slate-200 bg-slate-50">
+                                <div>
+                                    <p class="font-bold text-slate-800">{{ employee.display_name }}</p>
+                                    <p class="text-xs text-slate-400">{{ employee.job_title|default:"Care Staff" }}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-4 px-4 font-semibold text-slate-700">{{ employee.employee_id|default:"—" }}</td>
+                        <td class="py-4 px-4 text-slate-600">{{ employee.email|default:"—" }}</td>
+                        <td class="py-4 px-4 text-slate-600">{{ employee.phone|default:"—" }}</td>
+                        <td class="py-4 px-6 text-right">
+                            <a href="{% url 'employees:edit' employee.pk %}"
+                               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-blue-50 hover:text-[#5D87FF] hover:border-blue-200 transition">
+                                <i class="fa-solid fa-pen-to-square text-[10px]"></i>
+                                Edit
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-12 text-center">
+            <h3 class="font-bold text-slate-800">No employees in this unit</h3>
+            <p class="text-xs text-slate-500 mt-1">Assign staff to this unit when creating or editing an employee.</p>
+            <a href="{% url 'employees:create' %}" class="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#5D87FF] text-white text-xs font-semibold rounded-xl">
+                Add Employee
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

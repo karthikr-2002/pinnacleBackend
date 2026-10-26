@@ -57,15 +57,15 @@ def run_seed():
 
     # 2. Ensure / Create Units
     unit_sunrise, _ = Unit.objects.get_or_create(name='Sunrise Wing', defaults={'place': 'Building A - Level 1'})
-    unit_sunrise.users.set([users_map['john'], users_map['sarah'], users_map['alex'], users_map['maria'], users_map['david']])
+    unit_sunrise.users.set([users_map['john'], users_map['sarah'], users_map['alex'], users_map['david']])
     unit_sunrise.save()
 
     unit_meadow, _ = Unit.objects.get_or_create(name='Meadow Haven', defaults={'place': 'Building B - Level 2'})
-    unit_meadow.users.set([users_map['emma'], users_map['lucas'], users_map['clara'], users_map['samuel'], users_map['olivia']])
+    unit_meadow.users.set([users_map['emma'], users_map['lucas'], users_map['clara'], users_map['olivia']])
     unit_meadow.save()
 
     unit_cedar, _ = Unit.objects.get_or_create(name='Cedar Grove Memory Suite', defaults={'place': 'Building C - Ground Floor'})
-    unit_cedar.users.set([users_map['maria'], users_map['emma'], users_map['samuel'], users_map['liam']])
+    unit_cedar.users.set([users_map['maria'], users_map['samuel'], users_map['liam']])
     unit_cedar.save()
 
     print(f"  [Units Configured] Sunrise Wing ({unit_sunrise.users.count()} staff), Meadow Haven ({unit_meadow.users.count()} staff), Cedar Grove ({unit_cedar.users.count()} staff)")

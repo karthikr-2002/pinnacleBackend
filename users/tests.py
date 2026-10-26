@@ -115,3 +115,59 @@ class EmployeeAdminTests(TestCase):
         self.assertEqual(employee.last_name, 'Garcia')
         self.assertEqual(employee.phone, '+1 555 0199')
         self.assertTrue(self.unit.users.filter(id=employee.id).exists())
+
+    def test_admin_can_search_employees_by_name(self):
+        maria = User.objects.create_user(
+            username='EMP-2044',
+            employee_id='EMP-2044',
+            first_name='Maria',
+            last_name='Garcia',
+            email='maria.garcia@care.com',
+            password='Password123!',
+            role='user',
+        )
+        User.objects.create_user(
+            username='EMP-3001',
+            employee_id='EMP-3001',
+            first_name='James',
+            last_name='Walker',
+            email='james.walker@care.com',
+            password='Password123!',
+            role='user',
+        )
+        self.client.login(username='admin', password='Password123!')
+        response = self.client.get(reverse('employees:list'), {'q': 'Maria'})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Maria Garcia')
+        self.assertNotContains(response, 'James Walker')
+        self.assertIn(maria, response.context['employees'])
+
+    def test_admin_can_edit_employee_profile(self):
+        employee = User.objects.create_user(
+            username='EMP-2044',
+            employee_id='EMP-2044',
+            first_name='Maria',
+            last_name='Garcia',
+            email='maria.garcia@care.com',
+            phone='+1 555 0199',
+            password='Password123!',
+            role='user',
+        )
+        self.unit.users.add(employee)
+        new_unit = Unit.objects.create(name='Moonlight Ward', place='Building B')
+        self.client.login(username='admin', password='Password123!')
+        response = self.client.post(reverse('employees:edit', args=[employee.pk]), {
+            'full_name': 'Maria Lopez',
+            'employee_id': 'EMP-2044',
+            'email': 'maria.lopez@care.com',
+            'phone': '555-0101',
+            'unit': new_unit.id,
+        })
+        self.assertEqual(response.status_code, 302)
+        employee.refresh_from_db()
+        self.assertEqual(employee.first_name, 'Maria')
+        self.assertEqual(employee.last_name, 'Lopez')
+        self.assertEqual(employee.email, 'maria.lopez@care.com')
+        self.assertEqual(employee.phone, '555-0101')
+        self.assertTrue(new_unit.users.filter(id=employee.id).exists())
+        self.assertFalse(self.unit.users.filter(id=employee.id).exists())

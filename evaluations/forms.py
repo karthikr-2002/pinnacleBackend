@@ -1,20 +1,12 @@
 from django import forms
 from django.utils import timezone
 from .models import Unit, EvaluationTemplate, Question, Evaluation
-from users.models import User
 
 
 class UnitForm(forms.ModelForm):
-    assignment_mode = forms.CharField(required=False, initial='all')
-    all_employees = forms.BooleanField(required=False)
-    users = forms.ModelMultipleChoiceField(
-        queryset=User.objects.all(),
-        required=False
-    )
-
     class Meta:
         model = Unit
-        fields = ('name', 'place', 'users')
+        fields = ('name', 'place')
         widgets = {
             'name': forms.TextInput(
                 attrs={
@@ -29,14 +21,6 @@ class UnitForm(forms.ModelForm):
                 }
             ),
         }
-
-    def clean(self):
-        cleaned_data = super().clean()
-        mode = cleaned_data.get('assignment_mode')
-        all_emp = cleaned_data.get('all_employees')
-        if mode == 'all' or all_emp:
-            cleaned_data['users'] = list(User.objects.all())
-        return cleaned_data
 
 
 

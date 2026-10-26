@@ -1,6 +1,6 @@
 {% extends 'dashboard_base.html' %}
 
-{% block title %}Create Employee - Tailwindadmin{% endblock %}
+{% block title %}{{ title }} - Tailwindadmin{% endblock %}
 
 {% block page_content %}
 <div class="max-w-2xl mx-auto space-y-6">
@@ -9,7 +9,13 @@
             <i class="fa-solid fa-arrow-left text-[10px]"></i> Back to Employees
         </a>
         <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">{{ title }}</h1>
-        <p class="text-sm text-slate-500 mt-1">Create a staff login account and assign the employee to a care unit.</p>
+        <p class="text-sm text-slate-500 mt-1">
+            {% if is_edit %}
+            Update this staff member's profile, login details, and care unit.
+            {% else %}
+            Create a staff login account and assign the employee to a care unit.
+            {% endif %}
+        </p>
     </div>
 
     {% if not units %}
@@ -55,7 +61,7 @@
             <div>
                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Photo</label>
                 <div class="flex items-center gap-4">
-                    <img id="photo-preview" src="https://api.dicebear.com/7.x/bottts/svg?seed=NewStaff" alt="Preview" class="w-16 h-16 rounded-2xl object-cover border border-slate-200 bg-slate-50">
+                    <img id="photo-preview" src="{% if employee %}{{ employee.photo_url }}{% else %}https://api.dicebear.com/7.x/bottts/svg?seed=NewStaff{% endif %}" alt="Preview" class="w-16 h-16 rounded-2xl object-cover border border-slate-200 bg-slate-50">
                     <div class="flex-1 min-w-0">
                         {{ form.photo }}
                         <p class="text-[11px] text-slate-400 mt-1">Optional. JPG, PNG, or WebP.</p>
@@ -67,7 +73,13 @@
             <div>
                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Password</label>
                 {{ form.password }}
-                <p class="text-[11px] text-slate-400 mt-1">Minimum 8 characters. The employee will use this with their Employee ID to sign in.</p>
+                <p class="text-[11px] text-slate-400 mt-1">
+                    {% if is_edit %}
+                    Leave blank to keep the current password. Minimum 8 characters if you set a new one.
+                    {% else %}
+                    Minimum 8 characters. The employee will use this with their Employee ID to sign in.
+                    {% endif %}
+                </p>
                 {% if form.password.errors %}<p class="text-xs text-rose-500 mt-1">{{ form.password.errors.0 }}</p>{% endif %}
             </div>
 
@@ -84,7 +96,7 @@
                 <a href="{% url 'employees:list' %}" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50">Cancel</a>
                 <button type="submit" {% if not units %}disabled{% endif %}
                         class="px-5 py-2.5 rounded-xl bg-[#5D87FF] hover:bg-[#4570ea] disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold shadow-md shadow-blue-500/20">
-                    Create Employee
+                    {{ submit_label }}
                 </button>
             </div>
         </form>

@@ -1,9 +1,11 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
-from .forms import UserLoginForm, UserRegisterForm, EmployeeCreateForm
+from django.db.models import Q, Value
+from django.db.models.functions import Concat
+from .forms import UserLoginForm, UserRegisterForm, EmployeeCreateForm, EmployeeEditForm
 from .models import User
 
 
@@ -70,14 +72,24 @@ def employee_list(request):
     if not is_admin(request.user):
         raise PermissionDenied('Only administrators can manage employees.')
 
+    search_query = request.GET.get('q', '').strip()
     employees = (
         User.objects.exclude(role='admin')
         .exclude(is_superuser=True)
         .prefetch_related('assigned_units')
         .order_by('first_name', 'last_name', 'username')
     )
+    if search_query:
+        employees = employees.annotate(
+            full_name_search=Concat('first_name', Value(' '), 'last_name')
+        ).filter(
+            Q(first_name__icontains=search_query)
+            | Q(last_name__icontains=search_query)
+            | Q(full_name_search__icontains=search_query)
+        )
     return render(request, 'users/admin/employee_list.html', {
         'employees': employees,
+        'search_query': search_query,
         'active_menu': 'employees',
     })
 
@@ -108,5 +120,44 @@ def employee_create(request):
         'form': form,
         'units': units,
         'title': 'Create Employee',
+        'submit_label': 'Create Employee',
+        'is_edit': False,
+        'employee': None,
+        'active_menu': 'employees',
+    })
+
+
+@login_required(login_url='users:login')
+def employee_edit(request, pk):
+    if not is_admin(request.user):
+        raise PermissionDenied('Only administrators can edit employee accounts.')
+
+    from evaluations.models import Unit
+    employee = get_object_or_404(
+        User.objects.exclude(role='admin').exclude(is_superuser=True),
+        pk=pk,
+    )
+    units = Unit.objects.all().order_by('name')
+
+    if request.method == 'POST':
+        form = EmployeeEditForm(request.POST, request.FILES, instance=employee)
+        if form.is_valid():
+            employee = form.save()
+            messages.success(
+                request,
+                f"Employee '{employee.display_name}' was updated."
+            )
+            return redirect('employees:list')
+        messages.error(request, 'Please correct the errors below.')
+    else:
+        form = EmployeeEditForm(instance=employee)
+
+    return render(request, 'users/admin/employee_form.html', {
+        'form': form,
+        'units': units,
+        'title': 'Edit Employee',
+        'submit_label': 'Save Changes',
+        'is_edit': True,
+        'employee': employee,
         'active_menu': 'employees',
     })
