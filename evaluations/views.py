@@ -385,13 +385,13 @@ def admin_submissions_list(request):
     if selected_unit_id and selected_unit_id.isdigit():
         submissions_qs = submissions_qs.filter(unit_id=int(selected_unit_id))
 
-    # Group submissions by unit
+    # Group submissions by unit and evaluation
     units_dict = {}
     for sub in submissions_qs:
         if search_q:
             evaluator_name = (sub.evaluator.get_full_name() or sub.evaluator.username).lower()
             evaluatee_name = (sub.evaluatee.get_full_name() or sub.evaluatee.username).lower()
-            eval_title = sub.evaluation.title.lower()
+            eval_title = sub.evaluation.title.lower() if sub.evaluation else ''
             if search_q not in evaluator_name and search_q not in evaluatee_name and search_q not in eval_title:
                 continue
 
@@ -401,17 +401,68 @@ def admin_submissions_list(request):
                 'unit': sub.unit,
                 'unit_name': sub.unit.name if sub.unit else 'General / Unassigned',
                 'unit_place': sub.unit.place if sub.unit else 'Facility-wide',
+                'eval_dict': {},
+                'total_score': 0.0,
+                'count': 0,
+            }
+
+        eval_key = sub.evaluation.id if sub.evaluation else 0
+        if eval_key not in units_dict[unit_key]['eval_dict']:
+            units_dict[unit_key]['eval_dict'][eval_key] = {
+                'evaluation': sub.evaluation,
+                'evaluation_id': eval_key,
+                'evaluation_title': sub.evaluation.title if sub.evaluation else 'General Evaluation',
+                'evaluation_status': sub.evaluation.get_dynamic_status_display() if sub.evaluation else 'Recorded',
                 'submissions': [],
                 'total_score': 0.0,
                 'count': 0,
             }
-        units_dict[unit_key]['submissions'].append(sub)
-        units_dict[unit_key]['total_score'] += float(sub.average_score or 0)
+
+        score = float(sub.average_score or 0)
+        units_dict[unit_key]['eval_dict'][eval_key]['submissions'].append(sub)
+        units_dict[unit_key]['eval_dict'][eval_key]['total_score'] += score
+        units_dict[unit_key]['eval_dict'][eval_key]['count'] += 1
+
+        units_dict[unit_key]['total_score'] += score
         units_dict[unit_key]['count'] += 1
 
     unit_groups = []
     for g in units_dict.values():
         g['avg_score'] = round(g['total_score'] / g['count'], 1) if g['count'] > 0 else 0.0
+        eval_groups = []
+        for eg in g['eval_dict'].values():
+            eg['avg_score'] = round(eg['total_score'] / eg['count'], 1) if eg['count'] > 0 else 0.0
+
+            # Group submissions by evaluatee (the employee who received the reviews)
+            users_dict = {}
+            for sub in eg['submissions']:
+                u_id = sub.evaluatee_id
+                if u_id not in users_dict:
+                    users_dict[u_id] = {
+                        'user': sub.evaluatee,
+                        'submissions': [],
+                        'total_score': 0.0,
+                        'count': 0,
+                    }
+                users_dict[u_id]['submissions'].append(sub)
+                users_dict[u_id]['total_score'] += float(sub.average_score or 0)
+                users_dict[u_id]['count'] += 1
+
+            users_list = []
+            for u_data in users_dict.values():
+                u_data['avg_score'] = round(u_data['total_score'] / u_data['count'], 1) if u_data['count'] > 0 else 0.0
+                users_list.append(u_data)
+
+            users_list.sort(key=lambda x: (x['user'].get_full_name() or x['user'].username).lower())
+            eg['users'] = users_list
+            eval_groups.append(eg)
+
+        eval_groups.sort(key=lambda x: x['evaluation_title'])
+        g['evaluation_groups'] = eval_groups
+        all_subs = []
+        for eg in eval_groups:
+            all_subs.extend(eg['submissions'])
+        g['submissions'] = all_subs
         unit_groups.append(g)
 
     unit_groups.sort(key=lambda x: x['unit_name'])
@@ -442,6 +493,194 @@ def admin_submission_detail(request, pk):
         'submission': submission,
         'active_menu': 'submissions',
     })
+
+
+
+@login_required(login_url='users:login')
+def admin_user_received_reviews(request, evaluation_id, user_id):
+    """Admin view: View all reviews and ratings received by a specific employee in an evaluation."""
+    if not is_admin(request.user):
+        raise PermissionDenied("Only administrators can view employee evaluation details.")
+
+    evaluation = get_object_or_404(
+        Evaluation.objects.select_related('template'),
+        pk=evaluation_id
+    )
+    evaluatee = get_object_or_404(User, pk=user_id)
+    questions = list(evaluation.template.questions.all().order_by('order'))
+
+    unit_id = request.GET.get('unit')
+    unit = get_object_or_404(Unit, pk=unit_id) if unit_id and unit_id.isdigit() else None
+
+    submissions_qs = EvaluationSubmission.objects.filter(
+        evaluation=evaluation,
+        evaluatee=evaluatee
+    ).select_related('evaluator', 'unit').prefetch_related('ratings__question')
+
+    if unit:
+        submissions_qs = submissions_qs.filter(unit=unit)
+
+    submissions = list(submissions_qs.order_by('-submitted_at'))
+
+    # Question-by-question breakdown for this employee
+    questions_breakdown = []
+    for q in questions:
+        q_ratings = []
+        for sub in submissions:
+            for r in sub.ratings.all():
+                if r.question_id == q.id:
+                    q_ratings.append({
+                        'evaluator': sub.evaluator,
+                        'score': r.score,
+                        'score_label': r.score_label,
+                        'comment': r.comment,
+                    })
+        scores = [item['score'] for item in q_ratings]
+        avg_q_score = round(sum(scores) / len(scores), 2) if scores else None
+        questions_breakdown.append({
+            'question': q,
+            'avg_score': avg_q_score,
+            'ratings': q_ratings,
+            'count': len(scores),
+        })
+
+    # Overall average score received across all criteria
+    all_received_scores = []
+    for sub in submissions:
+        for r in sub.ratings.all():
+            all_received_scores.append(r.score)
+    overall_avg = round(sum(all_received_scores) / len(all_received_scores), 2) if all_received_scores else 0.0
+
+    return render(request, 'evaluations/admin/user_received_reviews.html', {
+        'evaluation': evaluation,
+        'evaluatee': evaluatee,
+        'unit': unit,
+        'submissions': submissions,
+        'questions_breakdown': questions_breakdown,
+        'overall_avg': overall_avg,
+        'total_reviews': len(submissions),
+        'active_menu': 'submissions',
+    })
+
+
+
+@login_required(login_url='users:login')
+def evaluation_matrix(request, pk):
+    """Admin view: Calculation matrix view listing all staff and their ratings per question, matching spreadsheet layout."""
+    if not is_admin(request.user):
+        raise PermissionDenied("Only administrators can view evaluation matrix calculations.")
+
+    evaluation = get_object_or_404(
+        Evaluation.objects.select_related('template'),
+        pk=pk
+    )
+    questions = list(evaluation.template.questions.all().order_by('order'))
+    all_units = list(evaluation.units.all().order_by('name'))
+
+    selected_unit_id = request.GET.get('unit', '')
+    selected_unit = None
+    if selected_unit_id and selected_unit_id.isdigit():
+        selected_unit = Unit.objects.filter(id=int(selected_unit_id)).first()
+
+    submissions_qs = evaluation.submissions.select_related(
+        'evaluator', 'evaluatee', 'unit'
+    ).prefetch_related('ratings__question')
+
+    if selected_unit:
+        submissions_qs = submissions_qs.filter(unit=selected_unit)
+
+    submissions = list(submissions_qs)
+
+    # Group submissions by evaluatee (staff member)
+    evaluatees_dict = {}
+    for sub in submissions:
+        emp = sub.evaluatee
+        if emp.id not in evaluatees_dict:
+            evaluatees_dict[emp.id] = {
+                'employee': emp,
+                'submissions': [],
+            }
+        evaluatees_dict[emp.id]['submissions'].append(sub)
+
+    # Build rows for each staff member
+    rows = []
+    question_totals = {q.id: {'sum': 0.0, 'count': 0} for q in questions}
+
+    for emp_data in evaluatees_dict.values():
+        emp = emp_data['employee']
+        emp_subs = emp_data['submissions']
+        q_scores = []
+        row_score_sum = 0.0
+        scored_questions_count = 0
+
+        for q in questions:
+            scores_for_q = []
+            for sub in emp_subs:
+                for r in sub.ratings.all():
+                    if r.question_id == q.id:
+                        scores_for_q.append(r.score)
+
+            if scores_for_q:
+                avg_q = round(sum(scores_for_q) / len(scores_for_q), 2)
+                row_score_sum += avg_q
+                scored_questions_count += 1
+                question_totals[q.id]['sum'] += avg_q
+                question_totals[q.id]['count'] += 1
+            else:
+                avg_q = None
+
+            q_scores.append({
+                'question_id': q.id,
+                'score': avg_q,
+            })
+
+        row_total = round(row_score_sum, 2)
+        row_avg = round(row_score_sum / scored_questions_count, 2) if scored_questions_count > 0 else 0.0
+
+        rows.append({
+            'employee': emp,
+            'question_scores': q_scores,
+            'total_score': row_total,
+            'avg_score': row_avg,
+            'reviews_count': len(emp_subs),
+        })
+
+    # Sort rows by total score descending (largest on top), with tie-breaker on avg_score
+    rows.sort(key=lambda r: (r['total_score'], r['avg_score']), reverse=True)
+
+    # Calculate column averages for the summary row
+    col_averages = []
+    overall_unit_sum = 0.0
+    for q in questions:
+        q_info = question_totals[q.id]
+        if q_info['count'] > 0:
+            col_avg = round(q_info['sum'] / q_info['count'], 2)
+            overall_unit_sum += col_avg
+        else:
+            col_avg = None
+        col_averages.append({
+            'question_id': q.id,
+            'avg_score': col_avg,
+        })
+
+    unit_total = round(overall_unit_sum, 2)
+    valid_col_count = sum(1 for c in col_averages if c['avg_score'] is not None)
+    unit_avg = round(overall_unit_sum / valid_col_count, 2) if valid_col_count > 0 else 0.0
+
+    return render(request, 'evaluations/admin/evaluation_matrix.html', {
+        'evaluation': evaluation,
+        'questions': questions,
+        'all_units': all_units,
+        'selected_unit': selected_unit,
+        'rows': rows,
+        'col_averages': col_averages,
+        'unit_total': unit_total,
+        'unit_avg': unit_avg,
+        'total_staff': len(rows),
+        'total_submissions': len(submissions),
+        'active_menu': 'submissions',
+    })
+
 
 
 # -------------------------------------------------------------
@@ -604,12 +843,18 @@ def evaluation_rate(request, pk, evaluatee_id):
 
 @login_required(login_url='users:login')
 def user_history(request):
-    """User view: View past peer evaluations submitted by the logged in employee, grouped unit-wise."""
-    submissions = EvaluationSubmission.objects.filter(
-        evaluator=request.user
-    ).select_related('evaluation', 'evaluatee', 'unit').prefetch_related('ratings')
+    """User view: View past peer evaluations submitted by the logged in employee, grouped unit-wise. If admin, do not restrict (show all)."""
+    user_is_admin = is_admin(request.user)
+    if user_is_admin:
+        submissions = EvaluationSubmission.objects.all().select_related(
+            'evaluation', 'evaluatee', 'unit', 'evaluator'
+        ).prefetch_related('ratings')
+    else:
+        submissions = EvaluationSubmission.objects.filter(
+            evaluator=request.user
+        ).select_related('evaluation', 'evaluatee', 'unit', 'evaluator').prefetch_related('ratings')
 
-    # Group submissions by unit
+    # Group submissions by unit and evaluation
     units_dict = {}
     for sub in submissions:
         unit_key = sub.unit.id if sub.unit else 0
@@ -618,17 +863,44 @@ def user_history(request):
                 'unit': sub.unit,
                 'unit_name': sub.unit.name if sub.unit else 'General / Unassigned',
                 'unit_place': sub.unit.place if sub.unit else 'Facility-wide',
+                'eval_dict': {},
+                'total_score': 0.0,
+                'count': 0,
+            }
+
+        eval_key = sub.evaluation.id if sub.evaluation else 0
+        if eval_key not in units_dict[unit_key]['eval_dict']:
+            units_dict[unit_key]['eval_dict'][eval_key] = {
+                'evaluation': sub.evaluation,
+                'evaluation_id': eval_key,
+                'evaluation_title': sub.evaluation.title if sub.evaluation else 'General Evaluation',
+                'evaluation_status': sub.evaluation.get_dynamic_status_display() if sub.evaluation else 'Recorded',
                 'submissions': [],
                 'total_score': 0.0,
                 'count': 0,
             }
-        units_dict[unit_key]['submissions'].append(sub)
-        units_dict[unit_key]['total_score'] += float(sub.average_score or 0)
+
+        score = float(sub.average_score or 0)
+        units_dict[unit_key]['eval_dict'][eval_key]['submissions'].append(sub)
+        units_dict[unit_key]['eval_dict'][eval_key]['total_score'] += score
+        units_dict[unit_key]['eval_dict'][eval_key]['count'] += 1
+
+        units_dict[unit_key]['total_score'] += score
         units_dict[unit_key]['count'] += 1
 
     unit_groups = []
     for g in units_dict.values():
         g['avg_score'] = round(g['total_score'] / g['count'], 1) if g['count'] > 0 else 0.0
+        eval_groups = []
+        for eg in g['eval_dict'].values():
+            eg['avg_score'] = round(eg['total_score'] / eg['count'], 1) if eg['count'] > 0 else 0.0
+            eval_groups.append(eg)
+        eval_groups.sort(key=lambda x: x['evaluation_title'])
+        g['evaluation_groups'] = eval_groups
+        all_subs = []
+        for eg in eval_groups:
+            all_subs.extend(eg['submissions'])
+        g['submissions'] = all_subs
         unit_groups.append(g)
 
     unit_groups.sort(key=lambda x: x['unit_name'])
@@ -636,6 +908,7 @@ def user_history(request):
     return render(request, 'evaluations/user/my_history.html', {
         'unit_groups': unit_groups,
         'total_submissions': submissions.count(),
+        'is_admin': user_is_admin,
         'active_menu': 'my_history',
     })
 
@@ -643,14 +916,23 @@ def user_history(request):
 
 @login_required(login_url='users:login')
 def user_history_detail(request, pk):
-    """User view: View details of a past submission made by this employee."""
-    submission = get_object_or_404(
-        EvaluationSubmission.objects.select_related('evaluation', 'evaluatee', 'unit').prefetch_related('ratings__question'),
-        pk=pk,
-        evaluator=request.user
-    )
+    """User view: View details of a past submission made by this employee. Admin can view any."""
+    user_is_admin = is_admin(request.user)
+    if user_is_admin:
+        submission = get_object_or_404(
+            EvaluationSubmission.objects.select_related('evaluation', 'evaluatee', 'unit', 'evaluator').prefetch_related('ratings__question'),
+            pk=pk
+        )
+    else:
+        submission = get_object_or_404(
+            EvaluationSubmission.objects.select_related('evaluation', 'evaluatee', 'unit', 'evaluator').prefetch_related('ratings__question'),
+            pk=pk,
+            evaluator=request.user
+        )
 
     return render(request, 'evaluations/user/my_history_detail.html', {
         'submission': submission,
+        'is_admin': user_is_admin,
         'active_menu': 'my_history',
     })
+

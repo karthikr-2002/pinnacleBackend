@@ -16,6 +16,8 @@ urlpatterns = [
     path('units/<int:pk>/edit/', views.unit_edit, name='unit_edit'),
     path('submissions/', views.admin_submissions_list, name='admin_submissions_list'),
     path('submissions/<int:pk>/', views.admin_submission_detail, name='admin_submission_detail'),
+    path('submissions/evaluation/<int:evaluation_id>/user/<int:user_id>/', views.admin_user_received_reviews, name='admin_user_received_reviews'),
+    path('<int:pk>/matrix/', views.evaluation_matrix, name='evaluation_matrix'),
 
     # User (Employee) routes
     path('my/', views.user_evaluations, name='user_evaluations'),

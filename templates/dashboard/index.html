@@ -1,144 +1,466 @@
 {% extends 'dashboard_base.html' %}
 
-{% block title %}Tailwindadmin - Modern Dashboard{% endblock %}
+{% block title %}Pinnacle Care Home - Modern Dashboard{% endblock %}
 
 {% block page_content %}
-    <!-- WELCOME BANNER CARD -->
-    <div class="bg-gradient-to-r from-[#EBF5FF] via-[#E8F7FF] to-[#EFF6FF] rounded-3xl p-6 sm:p-8 relative overflow-hidden border border-blue-100/60 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
-        <!-- Left Details -->
-        <div class="flex items-center gap-4 sm:gap-5 z-10">
-            <!-- 3D Avatar Image -->
-            <div class="relative flex-shrink-0">
-                <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-amber-400 to-amber-200 p-1 shadow-md shadow-amber-300/30 overflow-hidden flex items-center justify-center">
-                    <svg viewBox="0 0 100 100" class="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect width="100" height="100" rx="16" fill="#FDE68A"/>
-                        <circle cx="50" cy="42" r="22" fill="#F59E0B"/>
-                        <circle cx="50" cy="40" r="20" fill="#FCD34D"/>
-                        <circle cx="43" cy="38" r="2.5" fill="#1F2937"/>
-                        <circle cx="57" cy="38" r="2.5" fill="#1F2937"/>
-                        <path d="M43 46C46 50 54 50 57 46" stroke="#1F2937" stroke-width="2.5" stroke-linecap="round"/>
-                        <path d="M22 88C22 72 34 68 50 68C66 68 78 72 78 88" fill="#F59E0B"/>
-                        <path d="M38 68L50 82L62 68" fill="#FFFFFF"/>
-                    </svg>
-                </div>
-            </div>
+<div class="space-y-6">
 
-            <div>
-                <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight flex items-center gap-2">
-                    Welcome back! {{ user_name }} <span class="inline-block animate-pulse">👋</span>
-                </h1>
-                <p class="text-sm font-medium text-slate-500 mt-1">
+    <!-- WELCOME BANNER CARD -->
+    <div class="bg-gradient-to-r from-[#EBF5FF] via-[#E8F7FF] to-[#EFF6FF] rounded-3xl p-6 sm:p-7 relative overflow-hidden border border-blue-100/70 shadow-sm flex flex-col md:flex-row items-center justify-between gap-5">
+        <!-- Left Details -->
+        <div class="flex items-center gap-4 sm:gap-5 z-10 min-w-0">
+            <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 text-white shadow-md shadow-blue-500/25 flex items-center justify-center text-2xl flex-shrink-0">
+                <i class="fa-solid fa-hospital-user"></i>
+            </div>
+            <div class="min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h1 class="text-xl sm:text-2xl font-black text-slate-800 tracking-tight">
+                        Welcome back, {{ user_name }}!
+                    </h1>
+                    <span class="inline-block animate-pulse text-lg">👋</span>
+                </div>
+                <p class="text-xs sm:text-sm font-medium text-slate-500 mt-1">
                     {% if is_admin %}
-                        System Administrator &bull; Manage care units, evaluation templates, and review ratings
+                        Pinnacle Care Home &bull; Monitor care unit evaluations, peer feedback, and staff benchmarks
                     {% else %}
-                        Care Staff &bull; Complete unit assessments and review your submitted history
+                        Pinnacle Care Home &bull; Complete peer evaluations for your assigned unit colleagues
                     {% endif %}
                 </p>
             </div>
         </div>
 
-        <!-- Right Quick Action / Illustration -->
-        <div class="flex items-center gap-3 z-10">
+        <!-- Right Quick Actions -->
+        <div class="flex items-center gap-2.5 z-10 flex-wrap">
             {% if is_admin %}
-                <a href="{% url 'evaluations:evaluation_create' %}" class="px-4 py-2.5 rounded-xl bg-[#5D87FF] hover:bg-[#4570ea] text-white text-xs font-semibold shadow-md shadow-blue-500/20 transition flex items-center gap-2">
-                    <i class="fa-solid fa-plus"></i>
+                <a href="{% url 'evaluations:evaluation_create' %}"
+                   class="px-4 py-2.5 rounded-xl bg-[#5D87FF] hover:bg-[#4570ea] text-white text-xs font-bold shadow-sm shadow-blue-500/25 transition flex items-center gap-2 active:scale-95">
+                    <i class="fa-solid fa-plus text-[11px]"></i>
                     <span>New Evaluation</span>
                 </a>
-                <a href="{% url 'evaluations:template_create' %}" class="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-semibold shadow-sm transition flex items-center gap-2">
-                    <i class="fa-solid fa-file-circle-plus text-slate-500"></i>
+                <a href="{% url 'evaluations:template_create' %}"
+                   class="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold shadow-2xs transition flex items-center gap-2 active:scale-95">
+                    <i class="fa-solid fa-file-circle-plus text-slate-400"></i>
                     <span>New Template</span>
                 </a>
+                <a href="{% url 'evaluations:admin_submissions_list' %}"
+                   class="px-4 py-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold shadow-2xs transition flex items-center gap-2 active:scale-95">
+                    <i class="fa-solid fa-list-check text-indigo-500"></i>
+                    <span>Submissions</span>
+                </a>
             {% else %}
-                <a href="{% url 'evaluations:user_evaluations' %}" class="px-5 py-2.5 rounded-xl bg-[#5D87FF] hover:bg-[#4570ea] text-white text-xs font-semibold shadow-md shadow-blue-500/20 transition flex items-center gap-2">
+                <a href="{% url 'evaluations:user_evaluations' %}"
+                   class="px-5 py-2.5 rounded-xl bg-[#5D87FF] hover:bg-[#4570ea] text-white text-xs font-bold shadow-sm shadow-blue-500/25 transition flex items-center gap-2 active:scale-95">
                     <i class="fa-solid fa-clipboard-question"></i>
-                    <span>Take Evaluation</span>
+                    <span>My Peer Reviews</span>
+                </a>
+                <a href="{% url 'evaluations:user_history' %}"
+                   class="px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold shadow-2xs transition flex items-center gap-2 active:scale-95">
+                    <i class="fa-solid fa-clock-rotate-left text-slate-400"></i>
+                    <span>Review History</span>
                 </a>
             {% endif %}
         </div>
     </div>
 
-    <!-- STAT CARDS ROW: EVENTS, REPORTS, EMPLOYEES -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-5 sm:gap-6">
-        {% for stat in stats %}
-        <div class="{{ stat.bg_color }} rounded-3xl p-6 flex flex-col items-center justify-center text-center border border-slate-100/50 shadow-sm hover:shadow-md transition-all duration-200 group">
-            <div class="w-14 h-14 rounded-2xl bg-white shadow-sm flex items-center justify-center {{ stat.text_color }} group-hover:scale-110 transition-transform">
-                <i class="{{ stat.icon }} text-2xl"></i>
+    {% if is_admin %}
+    <!-- 4 USABLE ADMIN KPI STAT CARDS -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        <!-- Card 1: Active Evaluations -->
+        <a href="{% url 'evaluations:evaluation_list' %}"
+           class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm hover:shadow-md hover:border-blue-200 transition-all duration-200 flex items-center justify-between group">
+            <div>
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Evaluations</span>
+                <p class="text-2xl font-black text-slate-800 mt-1">{{ total_evaluations }}</p>
+                <p class="text-xs font-semibold text-blue-600 mt-1 flex items-center gap-1">
+                    <span>{{ in_progress_evals }} In Progress</span> &bull; <span>{{ completed_evals }} Done</span>
+                </p>
             </div>
-            <span class="text-sm font-semibold text-slate-500 mt-4">{{ stat.name }}</span>
-            <span class="text-3xl font-black {{ stat.text_color }} mt-1">{{ stat.value }}</span>
-        </div>
-        {% endfor %}
+            <div class="w-12 h-12 rounded-2xl bg-blue-50 text-[#5D87FF] flex items-center justify-center text-xl group-hover:scale-110 transition-transform flex-shrink-0">
+                <i class="fa-solid fa-clipboard-list"></i>
+            </div>
+        </a>
+
+        <!-- Card 2: Total Peer Submissions -->
+        <a href="{% url 'evaluations:admin_submissions_list' %}"
+           class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm hover:shadow-md hover:border-emerald-200 transition-all duration-200 flex items-center justify-between group">
+            <div>
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Peer Reviews</span>
+                <p class="text-2xl font-black text-slate-800 mt-1">{{ total_submissions }}</p>
+                <p class="text-xs font-semibold text-emerald-600 mt-1 flex items-center gap-1">
+                    <i class="fa-solid fa-check-double text-[10px]"></i> Recorded Across Units
+                </p>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform flex-shrink-0">
+                <i class="fa-solid fa-comments"></i>
+            </div>
+        </a>
+
+        <!-- Card 3: Care Units -->
+        <a href="{% url 'evaluations:unit_list' %}"
+           class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm hover:shadow-md hover:border-purple-200 transition-all duration-200 flex items-center justify-between group">
+            <div>
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Care Units</span>
+                <p class="text-2xl font-black text-slate-800 mt-1">{{ total_units }} Units</p>
+                <p class="text-xs font-semibold text-purple-600 mt-1 flex items-center gap-1">
+                    <i class="fa-solid fa-door-open text-[10px]"></i> Active Care Wings
+                </p>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform flex-shrink-0">
+                <i class="fa-solid fa-hospital"></i>
+            </div>
+        </a>
+
+        <!-- Card 4: Staff Members -->
+        <a href="{% url 'employees:list' %}"
+           class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm hover:shadow-md hover:border-amber-200 transition-all duration-200 flex items-center justify-between group">
+            <div>
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Care Staff</span>
+                <p class="text-2xl font-black text-slate-800 mt-1">{{ total_staff }} Staff</p>
+                <p class="text-xs font-semibold text-amber-600 mt-1 flex items-center gap-1">
+                    <i class="fa-solid fa-user-nurse text-[10px]"></i> Assigned to Care Units
+                </p>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl group-hover:scale-110 transition-transform flex-shrink-0">
+                <i class="fa-solid fa-users"></i>
+            </div>
+        </a>
     </div>
 
-    <!-- CHARTS ROW: REVENUE UPDATES & YEARLY BREAKUP -->
+    <!-- CHARTS ROW: REAL UNIT ACTIVITY BAR CHART & STATUS DONUT CHART -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        <!-- Left Column (2/3): Revenue Updates Bar Chart -->
+        <!-- Left Column (2/3): Peer Reviews by Care Unit Bar Chart -->
         <div class="lg:col-span-2 bg-white rounded-3xl p-6 sm:p-7 border border-slate-100 shadow-sm flex flex-col justify-between">
-            <!-- Chart Header -->
-            <div class="flex items-center justify-between mb-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
                 <div>
-                    <h3 class="text-lg font-bold text-slate-800">Revenue Updates</h3>
-                    <p class="text-xs text-slate-400 mt-0.5">Overview of Profit</p>
+                    <h3 class="text-base font-extrabold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-column text-[#5D87FF]"></i>
+                        Peer Reviews Completed by Care Unit
+                    </h3>
+                    <p class="text-xs text-slate-400 mt-0.5">Total completed peer reviews recorded in each care wing</p>
                 </div>
-                <div>
-                    <select id="revenue-year-select"
-                            class="text-xs font-semibold text-slate-600 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#5D87FF]/20 focus:border-[#5D87FF] transition cursor-pointer">
-                        <option value="2025" selected>Year 2025</option>
-                        <option value="2024">Year 2024</option>
-                        <option value="2023">Year 2023</option>
-                    </select>
-                </div>
+                <a href="{% url 'evaluations:admin_submissions_list' %}"
+                   class="text-xs font-bold text-[#5D87FF] hover:underline flex items-center gap-1 whitespace-nowrap self-start sm:self-auto">
+                    <span>View All Units</span>
+                    <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                </a>
             </div>
 
-            <!-- Apex Bar Chart Container -->
-            <div class="w-full h-72 sm:h-80" id="revenue-bar-chart"></div>
+            <!-- Apex Column Bar Chart -->
+            <div class="w-full h-72 sm:h-80" id="unit-bar-chart"></div>
         </div>
 
-        <!-- Right Column (1/3): Yearly Breakup Donut Chart -->
+        <!-- Right Column (1/3): Evaluation Lifecycle Status Donut Chart -->
         <div class="bg-white rounded-3xl p-6 sm:p-7 border border-slate-100 shadow-sm flex flex-col justify-between">
             <div>
-                <!-- Title & Stats -->
-                <h3 class="text-lg font-bold text-slate-800">Yearly Breakup</h3>
-                <div class="mt-3 flex items-baseline gap-3">
-                    <span class="text-3xl font-black text-slate-900 tracking-tight">{{ revenue_total }}</span>
-                    <span class="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
-                        <i class="fa-solid fa-arrow-trend-up text-[10px]"></i> {{ growth_rate }} last year
-                    </span>
-                </div>
+                <h3 class="text-base font-extrabold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-pie text-emerald-500"></i>
+                    Evaluation Status
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5">Lifecycle status distribution</p>
             </div>
 
             <!-- Donut Chart Container -->
-            <div class="w-full flex items-center justify-center my-4" id="yearly-donut-chart"></div>
+            <div class="w-full flex items-center justify-center my-3" id="status-donut-chart"></div>
 
-            <!-- Legend Items -->
-            <div class="pt-2 border-t border-slate-100 flex items-center justify-around text-xs font-semibold text-slate-500">
-                <div class="flex items-center gap-1.5">
-                    <span class="w-2.5 h-2.5 rounded-full bg-[#5D87FF]"></span>
-                    <span>2023</span>
+            <!-- Status Breakdown Legend Items -->
+            <div class="pt-3 border-t border-slate-100 space-y-2 text-xs">
+                <div class="flex items-center justify-between text-slate-600">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-[#13DEB9]"></span>
+                        <span class="font-medium">Completed</span>
+                    </div>
+                    <strong class="text-slate-800">{{ completed_evals }}</strong>
                 </div>
-                <div class="flex items-center gap-1.5">
-                    <span class="w-2.5 h-2.5 rounded-full bg-[#13DEB9]"></span>
-                    <span>2024</span>
+                <div class="flex items-center justify-between text-slate-600">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-[#5D87FF]"></span>
+                        <span class="font-medium">In Progress</span>
+                    </div>
+                    <strong class="text-slate-800">{{ in_progress_evals }}</strong>
                 </div>
-                <div class="flex items-center gap-1.5">
-                    <span class="w-2.5 h-2.5 rounded-full bg-[#FFAE1F]"></span>
-                    <span>2025</span>
+                <div class="flex items-center justify-between text-slate-600">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-[#FFAE1F]"></span>
+                        <span class="font-medium">Not Started</span>
+                    </div>
+                    <strong class="text-slate-800">{{ not_started_evals }}</strong>
                 </div>
             </div>
         </div>
 
     </div>
+
+    <!-- USABLE LOWER SECTION: ONGOING EVALUATIONS & CARE UNIT LEADERBOARD -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Left (2/3): Active / Ongoing Evaluations Progress -->
+        <div class="lg:col-span-2 bg-white rounded-3xl p-6 sm:p-7 border border-slate-100 shadow-sm space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div>
+                    <h3 class="text-base font-extrabold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-blue-500"></i>
+                        Active Care Evaluations
+                    </h3>
+                    <p class="text-xs text-slate-400 mt-0.5">Current evaluations and peer submission progress</p>
+                </div>
+                <a href="{% url 'evaluations:evaluation_list' %}"
+                   class="text-xs font-bold text-[#5D87FF] hover:underline flex items-center gap-1">
+                    <span>Manage All</span>
+                    <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                </a>
+            </div>
+
+            <div class="space-y-3.5">
+                {% for ev in active_evaluations %}
+                <div class="p-4 rounded-2xl border border-slate-200/80 bg-slate-50/50 hover:bg-white hover:border-[#5D87FF]/40 hover:shadow-xs transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-2 flex-wrap mb-1">
+                            <h4 class="text-sm font-bold text-slate-800 truncate">
+                                {{ ev.title }}
+                            </h4>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold
+                                {% if ev.status_code == 'completed' %}bg-emerald-50 text-emerald-700 border border-emerald-200
+                                {% elif ev.status_code == 'in_progress' %}bg-blue-50 text-blue-700 border border-blue-200
+                                {% else %}bg-slate-100 text-slate-500 border border-slate-200{% endif %}">
+                                {{ ev.status_display }}
+                            </span>
+                        </div>
+                        <p class="text-xs text-slate-400 truncate">
+                            Template: <span class="text-slate-600 font-medium">{{ ev.template_title }}</span> &bull;
+                            Units: <strong class="text-slate-700">{{ ev.units_count }}</strong>
+                        </p>
+
+                        <!-- Progress Bar -->
+                        <div class="mt-2.5 max-w-md">
+                            <div class="flex items-center justify-between text-[11px] font-semibold text-slate-500 mb-1">
+                                <span>Peer Reviews: {{ ev.subs_count }}{% if ev.expected_count %} / {{ ev.expected_count }}{% endif %}</span>
+                                <span class="text-[#5D87FF]">{{ ev.progress_pct }}%</span>
+                            </div>
+                            <div class="w-full bg-slate-200/70 rounded-full h-1.5 overflow-hidden">
+                                <div class="h-1.5 rounded-full bg-[#5D87FF] transition-all duration-500" style="width: {{ ev.progress_pct }}%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex items-center gap-2 flex-shrink-0 self-end sm:self-center">
+                        <a href="{% url 'evaluations:evaluation_matrix' ev.id %}"
+                           class="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold border border-indigo-200 transition flex items-center gap-1.5 whitespace-nowrap active:scale-95"
+                           title="View question-by-question evaluation summary matrix">
+                            <i class="fa-solid fa-table-cells text-[10px]"></i>
+                            <span>Summary</span>
+                        </a>
+                        <a href="{% url 'evaluations:evaluation_detail' ev.id %}"
+                           class="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold border border-slate-200 transition whitespace-nowrap">
+                            Details
+                        </a>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-xs text-slate-400 italic py-4 text-center">No evaluations created yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Right (1/3): Care Unit Leaderboard Widget -->
+        <div class="bg-white rounded-3xl p-6 sm:p-7 border border-slate-100 shadow-sm space-y-4 flex flex-col justify-between">
+            <div>
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                    <div>
+                        <h3 class="text-base font-extrabold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-ranking-star text-amber-500"></i>
+                            Care Units Activity
+                        </h3>
+                        <p class="text-xs text-slate-400 mt-0.5">Submissions per facility</p>
+                    </div>
+                    <a href="{% url 'evaluations:unit_list' %}"
+                       class="text-xs font-bold text-[#5D87FF] hover:underline">
+                        Units
+                    </a>
+                </div>
+
+                <div class="space-y-3">
+                    {% for u in care_units_list %}
+                    <a href="{% url 'evaluations:admin_submissions_list' %}?unit={{ u.id }}"
+                       class="p-3 rounded-2xl border border-slate-100 hover:border-blue-200 hover:bg-blue-50/30 transition flex items-center justify-between gap-3 block group">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <div class="w-9 h-9 rounded-xl bg-slate-100 text-slate-600 group-hover:bg-blue-100 group-hover:text-blue-700 flex items-center justify-center text-xs font-bold flex-shrink-0 transition">
+                                {{ forloop.counter }}
+                            </div>
+                            <div class="min-w-0">
+                                <h5 class="text-xs font-bold text-slate-800 truncate group-hover:text-blue-600 transition">
+                                    {{ u.name }}
+                                </h5>
+                                <p class="text-[11px] text-slate-400 truncate">
+                                    {{ u.staff_count }} Staff Member{{ u.staff_count|pluralize }}
+                                </p>
+                            </div>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-xl text-xs font-black bg-blue-50 text-blue-700 border border-blue-100 flex-shrink-0">
+                            {{ u.subs_count }} Done
+                        </span>
+                    </a>
+                    {% empty %}
+                    <p class="text-xs text-slate-400 italic py-4 text-center">No units registered yet.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="pt-3 border-t border-slate-100">
+                <a href="{% url 'evaluations:admin_submissions_list' %}"
+                   class="w-full py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold transition flex items-center justify-center gap-1.5 border border-slate-200">
+                    <i class="fa-solid fa-list-check text-slate-400 text-[11px]"></i>
+                    <span>Browse All Submissions</span>
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- RECENT PEER SUBMISSION ACTIVITY FEED -->
+    <div class="bg-white rounded-3xl p-6 sm:p-7 border border-slate-100 shadow-sm space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div>
+                <h3 class="text-base font-extrabold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-clock-rotate-left text-indigo-500"></i>
+                    Recent Peer Review Activity
+                </h3>
+                <p class="text-xs text-slate-400 mt-0.5">Live feed of completed staff peer reviews</p>
+            </div>
+            <a href="{% url 'evaluations:admin_submissions_list' %}"
+               class="text-xs font-bold text-[#5D87FF] hover:underline flex items-center gap-1">
+                <span>View All ({{ total_submissions }})</span>
+                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </a>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {% for sub in recent_submissions %}
+            <div class="p-3.5 rounded-2xl border border-slate-200/80 bg-slate-50/40 hover:bg-white hover:border-[#5D87FF]/40 hover:shadow-xs transition space-y-2.5">
+                <div class="flex items-center justify-between gap-2">
+                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100 truncate max-w-[160px]">
+                        {{ sub.unit.name|default:"General Unit" }}
+                    </span>
+                    <span class="text-[10px] text-slate-400">
+                        {{ sub.submitted_at|timesince }} ago
+                    </span>
+                </div>
+
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-center flex-shrink-0">
+                        {{ sub.evaluator.first_name|default:sub.evaluator.username|slice:":1"|upper }}
+                    </div>
+                    <div class="min-w-0 flex-1 text-xs">
+                        <p class="text-slate-800 truncate font-semibold">
+                            <span class="font-bold text-slate-900">{{ sub.evaluator.get_full_name|default:sub.evaluator.username }}</span>
+                            <span class="text-slate-400 font-normal">reviewed</span>
+                            <span class="font-bold text-blue-700">{{ sub.evaluatee.get_full_name|default:sub.evaluatee.username }}</span>
+                        </p>
+                        <p class="text-[11px] text-slate-400 truncate mt-0.5">
+                            {{ sub.evaluation.title }}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="pt-2 border-t border-slate-200/50 flex items-center justify-between text-xs">
+                    <a href="{% url 'evaluations:admin_user_received_reviews' sub.evaluation.id sub.evaluatee.id %}{% if sub.unit %}?unit={{ sub.unit.id }}{% endif %}"
+                       class="text-[11px] font-bold text-blue-600 hover:underline flex items-center gap-1">
+                        <span>Staff Reviews</span>
+                        <i class="fa-solid fa-arrow-right text-[9px]"></i>
+                    </a>
+                    <a href="{% url 'evaluations:admin_submission_detail' sub.id %}"
+                       class="text-[11px] text-slate-400 hover:text-slate-600 transition">
+                        View Form &rarr;
+                    </a>
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-xs text-slate-400 italic py-4 col-span-3 text-center">No peer reviews recorded yet.</p>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <!-- CARE STAFF (NON-ADMIN) DASHBOARD -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        <div class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm flex items-center justify-between">
+            <div>
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Available Evaluations</span>
+                <p class="text-2xl font-black text-slate-800 mt-1">{{ available_evals_count }}</p>
+                <p class="text-xs font-semibold text-blue-600 mt-1">Open for you to rate</p>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-blue-50 text-[#5D87FF] flex items-center justify-center text-xl">
+                <i class="fa-solid fa-clipboard-question"></i>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm flex items-center justify-between">
+            <div>
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Peer Reviews Done</span>
+                <p class="text-2xl font-black text-slate-800 mt-1">{{ completed_subs }}</p>
+                <p class="text-xs font-semibold text-emerald-600 mt-1">Evaluations submitted</p>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm flex items-center justify-between">
+            <div>
+                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block">Assigned Care Units</span>
+                <p class="text-2xl font-black text-slate-800 mt-1">{{ assigned_units_count }}</p>
+                <p class="text-xs font-semibold text-purple-600 mt-1">Care facilities</p>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl">
+                <i class="fa-solid fa-door-open"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Staff Evaluations Action Card -->
+    <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4">
+        <h3 class="text-base font-extrabold text-slate-800 flex items-center gap-2">
+            <i class="fa-solid fa-list-check text-blue-500"></i>
+            Your Assigned Evaluations
+        </h3>
+        <div class="space-y-3">
+            {% for item in user_evaluations %}
+            <div class="p-4 rounded-2xl bg-slate-50/70 border border-slate-200/80 flex items-center justify-between gap-4">
+                <div>
+                    <h4 class="text-sm font-bold text-slate-800">{{ item.evaluation.title }}</h4>
+                    <p class="text-xs text-slate-400 mt-0.5">Template: {{ item.evaluation.template.title }}</p>
+                    <p class="text-xs text-blue-600 font-semibold mt-1">Colleagues Evaluated: {{ item.completed }} / {{ item.total }} ({{ item.pct }}%)</p>
+                </div>
+                <a href="{% url 'evaluations:user_evaluations' %}"
+                   class="px-4 py-2 rounded-xl bg-[#5D87FF] hover:bg-[#4570ea] text-white text-xs font-bold transition whitespace-nowrap">
+                    {% if item.pct == 100 %}Review Again{% else %}Complete Review{% endif %}
+                </a>
+            </div>
+            {% empty %}
+            <p class="text-xs text-slate-400 italic">No open evaluations currently assigned to your care unit.</p>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+</div>
 {% endblock %}
 
 {% block scripts %}
+{% if is_admin %}
 <script>
     document.addEventListener("DOMContentLoaded", function () {
-        // 1. Revenue Updates Bar Chart
+        // Parse dynamic series & labels passed from Django view
+        const unitLabels = {{ unit_chart_labels_json|safe }};
+        const unitData = {{ unit_chart_data_json|safe }};
+        const statusSeries = {{ status_series_json|safe }};
+        const statusLabels = {{ status_labels_json|safe }};
+
+        // 1. Care Unit Submissions Bar Chart
         const barOptions = {
             series: [{
-                name: 'Revenue',
-                data: [1.2, 2.7, 1.9, 3.1, 1.4, 0.8, 1.5, 2.6, 2.1, 2.5, 1.1, 0.9]
+                name: 'Completed Reviews',
+                data: unitData
             }],
             chart: {
                 type: 'bar',
@@ -148,14 +470,22 @@
             },
             plotOptions: {
                 bar: {
-                    borderRadius: 6,
+                    borderRadius: 8,
                     borderRadiusApplication: 'top',
-                    columnWidth: '28%',
-                    distributed: false,
+                    columnWidth: '38%',
+                    distributed: true,
                 }
             },
-            dataLabels: { enabled: false },
-            colors: ['#5D87FF'],
+            dataLabels: {
+                enabled: true,
+                style: {
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    colors: ['#fff']
+                },
+                offsetY: -20,
+            },
+            colors: ['#5D87FF', '#13DEB9', '#7C3AED', '#FFAE1F', '#FA896B', '#49BEFF'],
             grid: {
                 borderColor: '#F1F5F9',
                 strokeDashArray: 4,
@@ -163,50 +493,67 @@
                 xaxis: { lines: { show: false } }
             },
             xaxis: {
-                categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                categories: unitLabels,
                 axisBorder: { show: false },
                 axisTicks: { show: false },
                 labels: {
-                    style: { colors: '#94A3B8', fontSize: '11px', fontWeight: 500 }
+                    style: { colors: '#64748B', fontSize: '11px', fontWeight: 600 }
                 }
             },
             yaxis: {
-                min: 0,
-                max: 3.5,
-                tickAmount: 3,
                 labels: {
                     formatter: function (val) {
-                        return val > 0 ? val.toFixed(0) + 'k' : '0';
+                        return Math.round(val);
                     },
                     style: { colors: '#94A3B8', fontSize: '11px', fontWeight: 500 }
                 }
             },
+            legend: { show: false },
             tooltip: {
                 theme: 'light',
                 y: {
                     formatter: function (val) {
-                        return "$" + (val * 1000).toLocaleString();
+                        return val + " Peer Reviews";
                     }
                 }
             }
         };
 
-        const revenueChart = new ApexCharts(document.querySelector("#revenue-bar-chart"), barOptions);
-        revenueChart.render();
+        const unitChartEl = document.querySelector("#unit-bar-chart");
+        if (unitChartEl) {
+            const unitChart = new ApexCharts(unitChartEl, barOptions);
+            unitChart.render();
+        }
 
-        // 2. Yearly Breakup Donut Chart
+        // 2. Evaluation Status Donut Chart
         const donutOptions = {
-            series: [38, 40, 25],
-            labels: ['2023', '2024', '2025'],
+            series: statusSeries,
+            labels: statusLabels,
             chart: {
                 type: 'donut',
                 height: 220,
                 fontFamily: 'Plus Jakarta Sans, sans-serif',
             },
-            colors: ['#5D87FF', '#13DEB9', '#FFAE1F'],
+            colors: ['#13DEB9', '#5D87FF', '#FFAE1F'],
             plotOptions: {
                 pie: {
-                    donut: { size: '76%', background: 'transparent' }
+                    donut: {
+                        size: '72%',
+                        background: 'transparent',
+                        labels: {
+                            show: true,
+                            total: {
+                                show: true,
+                                label: 'Total',
+                                fontSize: '12px',
+                                fontWeight: 700,
+                                color: '#64748B',
+                                formatter: function (w) {
+                                    return w.globals.seriesTotals.reduce((a, b) => a + b, 0);
+                                }
+                            }
+                        }
+                    }
                 }
             },
             stroke: { width: 0 },
@@ -216,14 +563,18 @@
                 theme: 'light',
                 y: {
                     formatter: function (val) {
-                        return val + "%";
+                        return val + " Evaluations";
                     }
                 }
             }
         };
 
-        const donutChart = new ApexCharts(document.querySelector("#yearly-donut-chart"), donutOptions);
-        donutChart.render();
+        const statusChartEl = document.querySelector("#status-donut-chart");
+        if (statusChartEl) {
+            const statusChart = new ApexCharts(statusChartEl, donutOptions);
+            statusChart.render();
+        }
     });
 </script>
+{% endif %}
 {% endblock %}

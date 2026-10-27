@@ -18,6 +18,7 @@
                 <p class="text-sm text-slate-500 mt-1">
                     Evaluation: <strong class="text-slate-700">{{ submission.evaluation.title }}</strong> &bull;
                     Unit: <strong class="text-slate-700">{{ submission.unit.name|default:"General" }}</strong> &bull;
+                    Evaluator: <strong class="text-slate-700">{% if submission.evaluator == request.user %}You ({{ request.user.get_full_name|default:request.user.username }}){% else %}{{ submission.evaluator.get_full_name|default:submission.evaluator.username }}{% endif %}</strong> &bull;
                     Submitted: {{ submission.submitted_at|date:"M d, Y - H:i" }}
                 </p>
             </div>
@@ -30,7 +31,9 @@
     <!-- Rating Summary Banner -->
     <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 flex items-center justify-between">
         <div>
-            <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Average Score You Awarded</span>
+            <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">
+                Average Score {% if submission.evaluator == request.user %}You Awarded{% else %}Awarded by {{ submission.evaluator.get_full_name|default:submission.evaluator.username }}{% endif %}
+            </span>
             <div class="text-3xl font-black text-slate-800 mt-1 flex items-baseline gap-2">
                 {{ submission.average_score }} <span class="text-sm font-medium text-slate-400">/ 5.0</span>
             </div>

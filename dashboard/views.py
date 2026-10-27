@@ -1,89 +1,145 @@
+import json
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import get_user_model
+from django.db.models import Count
 from django.utils import timezone
 from evaluations.models import Unit, EvaluationTemplate, Evaluation, EvaluationSubmission
-
 
 
 @login_required(login_url='users:login')
 def dashboard_view(request):
     user = request.user
     is_admin = user.is_superuser or getattr(user, 'role', '') == 'admin'
+    User = get_user_model()
 
-    # Dynamically populate stats based on database records
     if is_admin:
-        active_evals_count = Evaluation.objects.filter(status__in=['not_started', 'in_progress', 'active']).count()
-        total_units_count = Unit.objects.count()
-        total_submissions_count = EvaluationSubmission.objects.count()
+        total_evaluations = Evaluation.objects.count()
+        total_submissions = EvaluationSubmission.objects.count()
+        total_units = Unit.objects.count()
+        total_staff = User.objects.count()
 
-        stats = [
-            {
-                'name': 'Events',
-                'value': str(active_evals_count if active_evals_count else 696),
-                'bg_color': 'bg-rose-50',
-                'text_color': 'text-rose-500',
-                'icon': 'fa-solid fa-award',
-            },
-            {
-                'name': 'Reports',
-                'value': str(total_submissions_count if total_submissions_count else 59),
-                'bg_color': 'bg-sky-50',
-                'text_color': 'text-sky-500',
-                'icon': 'fa-solid fa-diagram-project',
-            },
-            {
-                'name': 'Employees',
-                'value': str(total_units_count if total_units_count else 96),
-                'bg_color': 'bg-purple-50',
-                'text_color': 'text-purple-600',
-                'icon': 'fa-solid fa-user-tie',
-            },
-        ]
-        recent_evaluations = Evaluation.objects.all().select_related('template')[:4]
+        # Dynamic Status breakdown
+        evaluations_all = list(Evaluation.objects.all())
+        completed_evals = 0
+        in_progress_evals = 0
+        not_started_evals = 0
+        for ev in evaluations_all:
+            st = ev.get_dynamic_status()
+            if st == 'completed':
+                completed_evals += 1
+            elif st == 'in_progress':
+                in_progress_evals += 1
+            else:
+                not_started_evals += 1
+
+        # Care Unit Submissions Bar Chart (Top units with recorded reviews)
+        units_with_subs = list(
+            Unit.objects.annotate(
+                subs_count=Count('submissions', distinct=True),
+                staff_count=Count('users', distinct=True)
+            ).order_by('-subs_count')[:6]
+        )
+        unit_chart_labels = [u.name for u in units_with_subs if u.subs_count > 0]
+        unit_chart_data = [u.subs_count for u in units_with_subs if u.subs_count > 0]
+        if not unit_chart_labels:
+            unit_chart_labels = [u.name for u in units_with_subs[:4]]
+            unit_chart_data = [0 for _ in unit_chart_labels]
+
+        # Evaluation Status Donut Chart series & labels
+        status_series = [completed_evals, in_progress_evals, not_started_evals]
+        status_labels = ['Completed', 'In Progress', 'Not Started']
+
+        # Recent Evaluation Submissions (Live Activity Feed)
+        recent_submissions = EvaluationSubmission.objects.select_related(
+            'evaluator', 'evaluatee', 'unit', 'evaluation'
+        ).order_by('-submitted_at')[:6]
+
+        # Active / Running Evaluations with completion progress
+        active_evaluations = []
+        for ev in Evaluation.objects.select_related('template').prefetch_related('units__users', 'submissions').order_by('-created_at')[:5]:
+            subs_count = ev.submissions.count()
+            tot_expected = 0
+            for un in ev.units.all():
+                n = un.users.count()
+                if n > 1:
+                    tot_expected += n * (n - 1)
+            pct = round((subs_count / tot_expected) * 100) if tot_expected > 0 else (100 if subs_count > 0 else 0)
+            if pct > 100:
+                pct = 100
+            active_evaluations.append({
+                'id': ev.id,
+                'title': ev.title,
+                'template_title': ev.template.title if ev.template else '',
+                'units_count': ev.units.count(),
+                'subs_count': subs_count,
+                'expected_count': tot_expected,
+                'progress_pct': pct,
+                'status_code': ev.get_dynamic_status(),
+                'status_display': ev.get_dynamic_status_display(),
+            })
+
+        # Care Units Quick Leaderboard
+        care_units_list = units_with_subs[:5]
+
+        context = {
+            'is_admin': True,
+            'page_title': 'Modern Dashboard',
+            'active_menu': 'modern',
+            'user_name': user.get_full_name() or user.username,
+            'total_evaluations': total_evaluations,
+            'total_submissions': total_submissions,
+            'total_units': total_units,
+            'total_staff': total_staff,
+            'completed_evals': completed_evals,
+            'in_progress_evals': in_progress_evals,
+            'not_started_evals': not_started_evals,
+            'unit_chart_labels_json': json.dumps(unit_chart_labels),
+            'unit_chart_data_json': json.dumps(unit_chart_data),
+            'status_series_json': json.dumps(status_series),
+            'status_labels_json': json.dumps(status_labels),
+            'recent_submissions': recent_submissions,
+            'active_evaluations': active_evaluations,
+            'care_units_list': care_units_list,
+        }
     else:
-        user_units = user.assigned_units.all()
+        # Non-admin Care Staff view
         today = timezone.now().date()
+        user_units = user.assigned_units.all()
         available_evals = Evaluation.objects.filter(
-            status__in=['not_started', 'in_progress', 'active'],
-            start_date__lte=today,
-            units__in=user_units
+            units__in=user_units,
+            start_date__lte=today
         ).distinct()
-        completed_evals = EvaluationSubmission.objects.filter(evaluator=user).count()
 
+        completed_subs = EvaluationSubmission.objects.filter(evaluator=user).count()
+        received_subs = EvaluationSubmission.objects.filter(evaluatee=user).count()
 
-        stats = [
-            {
-                'name': 'Events',
-                'value': str(available_evals.count() if available_evals.exists() else 696),
-                'bg_color': 'bg-rose-50',
-                'text_color': 'text-rose-500',
-                'icon': 'fa-solid fa-award',
-            },
-            {
-                'name': 'Reports',
-                'value': str(completed_evals if completed_evals else 59),
-                'bg_color': 'bg-sky-50',
-                'text_color': 'text-sky-500',
-                'icon': 'fa-solid fa-diagram-project',
-            },
-            {
-                'name': 'Employees',
-                'value': str(user_units.count() if user_units.exists() else 96),
-                'bg_color': 'bg-purple-50',
-                'text_color': 'text-purple-600',
-                'icon': 'fa-solid fa-user-tie',
-            },
-        ]
-        recent_evaluations = available_evals[:4]
+        recent_submissions = EvaluationSubmission.objects.filter(
+            evaluator=user
+        ).select_related('evaluatee', 'unit', 'evaluation').order_by('-submitted_at')[:5]
 
-    context = {
-        'stats': stats,
-        'user_name': user.first_name or user.username,
-        'page_title': 'Modern Dashboard',
-        'active_menu': 'modern',
-        'revenue_total': '$36,358',
-        'growth_rate': '+9%',
-        'is_admin': is_admin,
-        'recent_evaluations': recent_evaluations,
-    }
+        user_evaluations = []
+        for ev in available_evals[:4]:
+            done, total = ev.get_user_progress(user)
+            pct = round((done / total) * 100) if total > 0 else 0
+            user_evaluations.append({
+                'evaluation': ev,
+                'completed': done,
+                'total': total,
+                'pct': pct,
+            })
+
+        context = {
+            'is_admin': False,
+            'page_title': 'Modern Dashboard',
+            'active_menu': 'modern',
+            'user_name': user.get_full_name() or user.username,
+            'available_evals_count': available_evals.count(),
+            'completed_subs': completed_subs,
+            'received_subs': received_subs,
+            'assigned_units_count': user_units.count(),
+            'recent_submissions': recent_submissions,
+            'user_evaluations': user_evaluations,
+        }
+
     return render(request, 'dashboard/index.html', context)

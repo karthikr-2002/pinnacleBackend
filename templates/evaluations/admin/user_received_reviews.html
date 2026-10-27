@@ -1,0 +1,223 @@
+{% extends 'dashboard_base.html' %}
+
+{% block title %}Peer Reviews Received: {{ evaluatee.get_full_name|default:evaluatee.username }} - Tailwindadmin{% endblock %}
+
+{% block page_content %}
+<div class="space-y-6">
+    <!-- Back Link & Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <a href="{% url 'evaluations:admin_submissions_list' %}{% if unit %}?unit={{ unit.id }}{% endif %}" class="text-xs font-semibold text-[#5D87FF] hover:underline flex items-center gap-1.5 mb-2">
+                <i class="fa-solid fa-arrow-left text-[10px]"></i> Back to Submissions History
+            </a>
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg bg-blue-100 text-blue-700 border border-blue-200">
+                    {{ evaluatee.first_name|default:evaluatee.username|slice:":1"|upper }}
+                </div>
+                <div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <h1 class="text-2xl font-black text-slate-800 tracking-tight">
+                            {{ evaluatee.get_full_name|default:evaluatee.username }}
+                        </h1>
+                        <span class="px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs font-bold border border-blue-100">
+                            {{ evaluatee.job_title|default:evaluatee.role|capfirst }}
+                        </span>
+                        {% if unit %}
+                        <span class="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 text-xs font-medium">
+                            <i class="fa-solid fa-hospital-user text-[10px] mr-1"></i>{{ unit.name }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    <p class="text-xs text-slate-500 mt-1">
+                        Evaluation: <strong class="text-slate-700">{{ evaluation.title }}</strong> &bull;
+                        Template: <span class="text-slate-600">{{ evaluation.template.title }}</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <a href="{% url 'evaluations:evaluation_matrix' evaluation.id %}{% if unit %}?unit={{ unit.id }}{% endif %}"
+               class="px-4 py-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold border border-indigo-200 shadow-sm transition flex items-center gap-2">
+                <i class="fa-solid fa-table-cells"></i>
+                <span>View Evaluation Summary</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary KPI Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+        <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex items-center justify-between">
+            <div>
+                <span class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Peer Reviews Count</span>
+                <div class="text-3xl font-black text-slate-800 mt-1">
+                    {{ total_reviews }}
+                </div>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-blue-50 text-[#5D87FF] flex items-center justify-center text-xl">
+                <i class="fa-solid fa-users"></i>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex items-center justify-between">
+            <div>
+                <span class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Evaluation Status</span>
+                <div class="text-lg font-black text-slate-800 mt-2">
+                    <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                        {{ evaluation.get_dynamic_status_display }}
+                    </span>
+                </div>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Question-by-Question Aggregate Scores -->
+    <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 sm:p-7 space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div>
+                <h2 class="text-base font-extrabold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-simple text-blue-500"></i>
+                    Average Score by Question ({{ questions_breakdown|length }} Questions)
+                </h2>
+                <p class="text-xs text-slate-400 mt-0.5">Average score awarded by all peer reviewers for each criteria</p>
+            </div>
+        </div>
+
+        <div class="space-y-3">
+            {% for item in questions_breakdown %}
+            <div class="p-4 rounded-2xl bg-slate-50/70 border border-slate-200/80 hover:bg-white hover:shadow-xs transition space-y-2">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="flex items-start gap-2.5 flex-1 min-w-0">
+                        <span class="w-6 h-6 rounded-lg bg-blue-100 text-blue-700 font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">
+                            Q{{ item.question.order }}
+                        </span>
+                        <div class="min-w-0">
+                            <h4 class="text-sm font-bold text-slate-800 leading-snug">
+                                {{ item.question.question_text }}
+                            </h4>
+                            <span class="text-[11px] text-slate-400">
+                                Rated by {{ item.count }} colleague{{ item.count|pluralize }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-3 flex-shrink-0">
+                        {% if item.avg_score is not None %}
+                        <div class="text-right">
+                            <span class="px-3 py-1 rounded-xl text-xs font-black
+                                {% if item.avg_score >= 4.0 %}bg-emerald-50 text-emerald-700 border border-emerald-200
+                                {% elif item.avg_score >= 3.5 %}bg-blue-50 text-blue-700 border border-blue-200
+                                {% elif item.avg_score >= 3.0 %}bg-amber-50 text-amber-700 border border-amber-200
+                                {% else %}bg-rose-50 text-rose-700 border border-rose-200{% endif %}">
+                                <i class="fa-solid fa-star text-[10px] mr-1"></i>{{ item.avg_score }} / 5.0
+                            </span>
+                        </div>
+                        {% else %}
+                        <span class="text-xs text-slate-400">No ratings</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Peer Ratings Received on this Question -->
+                <div class="pt-2.5 border-t border-slate-200/50 flex flex-wrap items-center gap-2">
+                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Ratings Received:</span>
+                    {% for r in item.ratings %}
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-xs text-slate-700 shadow-2xs">
+                        <span class="font-bold text-slate-800">{{ r.evaluator.first_name|default:r.evaluator.username }}:</span>
+                        <span class="text-amber-600 font-extrabold">{{ r.score }}/5</span>
+                    </span>
+                    {% empty %}
+                    <span class="text-xs text-slate-400 italic">No ratings recorded</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Individual Peer Reviews Received -->
+    <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 sm:p-7 space-y-5">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div>
+                <h2 class="text-base font-extrabold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-comments text-emerald-500"></i>
+                    All Peer Reviews Received ({{ submissions|length }})
+                </h2>
+                <p class="text-xs text-slate-400 mt-0.5">Full feedback and scores submitted by colleagues for this staff member</p>
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            {% for sub in submissions %}
+            <div class="p-5 rounded-2xl border border-slate-200/90 bg-slate-50/50 hover:bg-white hover:shadow-xs transition space-y-4">
+                <!-- Reviewer Header -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/60">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-sm">
+                            {{ sub.evaluator.first_name|default:sub.evaluator.username|slice:":1"|upper }}
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                                <span>Reviewed by:</span>
+                                <span class="text-blue-600">{{ sub.evaluator.get_full_name|default:sub.evaluator.username }}</span>
+                            </h4>
+                            <p class="text-xs text-slate-500">
+                                {{ sub.evaluator.job_title|default:sub.evaluator.role|capfirst }} &bull;
+                                Submitted {{ sub.submitted_at|date:"M d, Y - H:i" }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-black px-3 py-1.5 rounded-xl bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1 shadow-2xs">
+                            <i class="fa-solid fa-star text-amber-500 text-[10px]"></i> Average: {{ sub.average_score }} / 5.0
+                        </span>
+                        <a href="{% url 'evaluations:admin_submission_detail' sub.id %}"
+                           class="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold border border-slate-200 transition">
+                            Full Submission
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Per-Question Rating Badges for this Reviewer -->
+                <div>
+                    <h5 class="text-[11px] font-bold uppercase text-slate-400 tracking-wider mb-2">Ratings Received from this Reviewer:</h5>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                        {% for r in sub.ratings.all %}
+                        <div class="p-2.5 rounded-xl bg-white border border-slate-200/80 flex items-center justify-between gap-2">
+                            <span class="text-xs text-slate-700 truncate" title="{{ r.question.question_text }}">
+                                <strong class="text-blue-600">Q{{ r.question.order }}:</strong> {{ r.question.question_text|truncatechars:35 }}
+                            </span>
+                            <span class="text-xs font-bold px-2 py-0.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-100 flex-shrink-0">
+                                {{ r.score }}/5
+                            </span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Qualitative Feedback Note -->
+                {% if sub.feedback %}
+                <div class="p-3.5 rounded-xl bg-white border border-slate-200/80">
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+                        General Feedback Note:
+                    </span>
+                    <p class="text-xs text-slate-700 leading-relaxed italic">
+                        &ldquo;{{ sub.feedback }}&rdquo;
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+            {% empty %}
+            <div class="p-8 text-center bg-slate-50 rounded-2xl border border-slate-200">
+                <p class="text-xs text-slate-400">No peer reviews found for this employee in this evaluation.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
