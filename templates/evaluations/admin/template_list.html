@@ -1,6 +1,6 @@
 {% extends 'dashboard_base.html' %}
 
-{% block title %}Evaluation Templates - Tailwindadmin{% endblock %}
+{% block title %}Evaluation Templates - Pinnacle Care Homes{% endblock %}
 
 {% block page_content %}
 <div class="space-y-6">
@@ -49,9 +49,16 @@
                 </div>
             </div>
 
-            <div class="mt-6 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
-                <span>Created {{ template.created_at|date:"M Y" }}</span>
-                <span class="font-semibold text-slate-600">Scale: 0 &rarr; 5</span>
+            <div class="mt-6 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                <div class="text-slate-400 flex items-center gap-1.5">
+                    <span>Created {{ template.created_at|date:"M Y" }}</span>
+                    <span>•</span>
+                    <span class="font-medium text-slate-500">Scale 0–5</span>
+                </div>
+                <a href="{% url 'evaluations:template_edit' template.pk %}" class="px-3.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#5D87FF] text-xs font-bold transition flex items-center gap-1.5 shadow-2xs">
+                    <i class="fa-solid fa-pen-to-square text-xs"></i>
+                    <span>Edit</span>
+                </a>
             </div>
         </div>
         {% empty %}

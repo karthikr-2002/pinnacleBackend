@@ -2,7 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
-from django.db.models import Avg, Count
+from django.db.models import Avg, Count, Q, Value
+from django.db.models.functions import Concat
 from django.utils import timezone
 from .models import Unit, EvaluationTemplate, Question, Evaluation, EvaluationSubmission, Rating
 from .forms import UnitForm, EvaluationTemplateForm, EvaluationForm
@@ -288,6 +289,106 @@ def template_create(request):
     })
 
 
+@login_required(login_url='users:login')
+def template_edit(request, pk):
+    """Admin view: Edit an existing template and its questions."""
+    if not is_admin(request.user):
+        raise PermissionDenied("Only administrators can edit templates.")
+
+    template = get_object_or_404(EvaluationTemplate.objects.prefetch_related('questions'), pk=pk)
+
+    if request.method == 'POST':
+        form = EvaluationTemplateForm(request.POST, instance=template)
+        if form.is_valid():
+            question_ids = request.POST.getlist('question_id')
+            question_texts = request.POST.getlist('question_text')
+            question_orders = request.POST.getlist('question_order')
+            labels_0 = request.POST.getlist('label_0')
+            labels_1 = request.POST.getlist('label_1')
+            labels_2 = request.POST.getlist('label_2')
+            labels_3 = request.POST.getlist('label_3')
+            labels_4 = request.POST.getlist('label_4')
+            labels_5 = request.POST.getlist('label_5')
+
+            valid_questions = []
+            for i, q_text in enumerate(question_texts):
+                q_text = q_text.strip()
+                if not q_text:
+                    continue
+                try:
+                    ord_val = int(question_orders[i]) if i < len(question_orders) and question_orders[i] else len(valid_questions) + 1
+                except (ValueError, IndexError):
+                    ord_val = len(valid_questions) + 1
+
+                l0 = labels_0[i].strip() if i < len(labels_0) and labels_0[i].strip() else '0 - Not Acceptable / NA'
+                l1 = labels_1[i].strip() if i < len(labels_1) and labels_1[i].strip() else '1 - Poor'
+                l2 = labels_2[i].strip() if i < len(labels_2) and labels_2[i].strip() else '2 - Below Average'
+                l3 = labels_3[i].strip() if i < len(labels_3) and labels_3[i].strip() else '3 - Average'
+                l4 = labels_4[i].strip() if i < len(labels_4) and labels_4[i].strip() else '4 - Good'
+                l5 = labels_5[i].strip() if i < len(labels_5) and labels_5[i].strip() else '5 - Excellent'
+
+                qid = question_ids[i].strip() if i < len(question_ids) and question_ids[i].strip() else None
+
+                valid_questions.append({
+                    'id': qid,
+                    'question_text': q_text,
+                    'order': ord_val,
+                    'label_0': l0,
+                    'label_1': l1,
+                    'label_2': l2,
+                    'label_3': l3,
+                    'label_4': l4,
+                    'label_5': l5,
+                })
+
+            if not valid_questions:
+                messages.error(request, "Please add at least one question to the template.")
+                return render(request, 'evaluations/admin/template_form.html', {
+                    'form': form,
+                    'template_obj': template,
+                    'questions': template.questions.all().order_by('order'),
+                    'title': f'Edit Template: {template.title}',
+                    'active_menu': 'templates',
+                })
+
+            template = form.save()
+
+            existing_questions = {q.id: q for q in template.questions.all()}
+            saved_ids = set()
+
+            for q_data in valid_questions:
+                qid = q_data.pop('id')
+                if qid and qid.isdigit() and int(qid) in existing_questions:
+                    q_obj = existing_questions[int(qid)]
+                    for attr, val in q_data.items():
+                        setattr(q_obj, attr, val)
+                    q_obj.save()
+                    saved_ids.add(q_obj.id)
+                else:
+                    new_q = Question.objects.create(template=template, **q_data)
+                    saved_ids.add(new_q.id)
+
+            # Delete questions removed in edit form (if any)
+            to_delete_ids = set(existing_questions.keys()) - saved_ids
+            if to_delete_ids:
+                template.questions.filter(id__in=to_delete_ids).delete()
+
+            messages.success(request, f"Template '{template.title}' updated successfully with {len(saved_ids)} questions!")
+            return redirect('evaluations:template_list')
+    else:
+        form = EvaluationTemplateForm(instance=template)
+
+    questions = template.questions.all().order_by('order')
+
+    return render(request, 'evaluations/admin/template_form.html', {
+        'form': form,
+        'template_obj': template,
+        'questions': questions,
+        'title': f'Edit Template: {template.title}',
+        'active_menu': 'templates',
+    })
+
+
 
 @login_required(login_url='users:login')
 def unit_list(request):
@@ -312,10 +413,25 @@ def unit_detail(request, pk):
         Unit.objects.prefetch_related('users', 'evaluations'),
         pk=pk,
     )
-    employees = unit.users.all().order_by('first_name', 'last_name', 'username')
+    search_query = request.GET.get('q', '').strip()
+    employees = unit.users.all().prefetch_related('assigned_units').order_by('first_name', 'last_name', 'username')
+    if search_query:
+        employees = employees.annotate(
+            full_name_search=Concat('first_name', Value(' '), 'last_name')
+        ).filter(
+            Q(first_name__icontains=search_query)
+            | Q(last_name__icontains=search_query)
+            | Q(username__icontains=search_query)
+            | Q(employee_id__icontains=search_query)
+            | Q(email__icontains=search_query)
+            | Q(phone__icontains=search_query)
+            | Q(full_name_search__icontains=search_query)
+        )
+
     return render(request, 'evaluations/admin/unit_detail.html', {
         'unit': unit,
         'employees': employees,
+        'search_query': search_query,
         'active_menu': 'units',
     })
 
@@ -331,7 +447,7 @@ def unit_create(request):
         if form.is_valid():
             unit = form.save()
             messages.success(request, f"Unit '{unit.name}' created successfully!")
-            return redirect('evaluations:unit_detail', pk=unit.pk)
+            return redirect('evaluations:unit_list')
     else:
         form = UnitForm()
 
@@ -355,7 +471,7 @@ def unit_edit(request, pk):
         if form.is_valid():
             unit = form.save()
             messages.success(request, f"Unit '{unit.name}' updated successfully!")
-            return redirect('evaluations:unit_detail', pk=unit.pk)
+            return redirect('evaluations:unit_list')
     else:
         form = UnitForm(instance=unit)
 
@@ -576,11 +692,18 @@ def evaluation_matrix(request, pk):
     )
     questions = list(evaluation.template.questions.all().order_by('order'))
     all_units = list(evaluation.units.all().order_by('name'))
+    if not all_units:
+        sub_unit_ids = evaluation.submissions.exclude(unit__isnull=True).values_list('unit_id', flat=True).distinct()
+        all_units = list(Unit.objects.filter(id__in=sub_unit_ids).order_by('name'))
 
     selected_unit_id = request.GET.get('unit', '')
     selected_unit = None
     if selected_unit_id and selected_unit_id.isdigit():
         selected_unit = Unit.objects.filter(id=int(selected_unit_id)).first()
+
+    # Always default to the first available unit so matrix is strictly unit-wise
+    if not selected_unit and all_units:
+        selected_unit = all_units[0]
 
     submissions_qs = evaluation.submissions.select_related(
         'evaluator', 'evaluatee', 'unit'
@@ -724,6 +847,11 @@ def user_evaluations(request):
             })
 
         progress_pct = int((completed_count / total_peers * 100)) if total_peers > 0 else 0
+        is_fully_completed = (completed_count == total_peers and total_peers > 0)
+
+        # Show only not completed or not started evaluations (completed evaluations appear in history only)
+        if is_fully_completed:
+            continue
 
         evaluations_data.append({
             'evaluation': eval_obj,
@@ -731,7 +859,7 @@ def user_evaluations(request):
             'completed_count': completed_count,
             'total_peers': total_peers,
             'progress_pct': progress_pct,
-            'is_fully_completed': (completed_count == total_peers and total_peers > 0),
+            'is_fully_completed': is_fully_completed,
             'questions_count': eval_obj.template.questions_count,
         })
 

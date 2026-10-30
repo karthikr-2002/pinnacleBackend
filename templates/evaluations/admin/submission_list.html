@@ -1,6 +1,6 @@
 {% extends 'dashboard_base.html' %}
 
-{% block title %}Peer Submissions & Ratings History - Tailwindadmin{% endblock %}
+{% block title %}Peer Submissions & Ratings History - Pinnacle Care Homes{% endblock %}
 
 {% block page_content %}
 <div class="space-y-6">
@@ -15,127 +15,114 @@
             </div>
             <p class="text-sm text-slate-500 mt-1">Review peer evaluations submitted across all care units, organized unit-wise</p>
         </div>
-        <div class="flex items-center gap-3">
-            <a href="{% url 'evaluations:evaluation_list' %}" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition flex items-center gap-2">
-                <i class="fa-solid fa-arrow-left text-[10px]"></i>
-                <span>Back to Evaluations</span>
-            </a>
-        </div>
     </div>
 
-    <!-- Summary Stats Bar -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-2xs flex items-center gap-3.5">
-            <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-lg">
-                <i class="fa-solid fa-hospital-user"></i>
-            </div>
-            <div>
-                <span class="text-[11px] text-slate-400 font-semibold uppercase">Participating Units</span>
-                <p class="text-lg font-black text-slate-800">{{ unit_groups|length }} Care Units</p>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-2xs flex items-center gap-3.5">
-            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg">
-                <i class="fa-solid fa-clipboard-check"></i>
-            </div>
-            <div>
-                <span class="text-[11px] text-slate-400 font-semibold uppercase">Total Peer Submissions</span>
-                <p class="text-lg font-black text-slate-800">{{ total_submissions }} Submissions</p>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-2xs flex items-center gap-3.5">
-            <div class="w-10 h-10 rounded-xl bg-blue-50 text-[#5D87FF] flex items-center justify-center text-lg">
-                <i class="fa-solid fa-layer-group"></i>
-            </div>
-            <div>
-                <span class="text-[11px] text-slate-400 font-semibold uppercase">Presentation Format</span>
-                <p class="text-lg font-black text-slate-800">Unit-Wise Cards</p>
-            </div>
-        </div>
-    </div>
-
-    <!-- Filter & Search Bar -->
-    <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <!-- Unit Pills -->
-        <div class="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
-            <a href="{% url 'evaluations:admin_submissions_list' %}"
-               class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {% if not selected_unit_id %}bg-[#5D87FF] text-white shadow-sm shadow-blue-500/20{% else %}bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/80{% endif %}">
-                All Units ({{ total_submissions }})
-            </a>
-            {% for u in all_units %}
-            <a href="{% url 'evaluations:admin_submissions_list' %}?unit={{ u.id }}"
-               class="px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap {% if selected_unit_id == u.id|stringformat:'s' %}bg-[#5D87FF] text-white shadow-sm shadow-blue-500/20{% else %}bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/80{% endif %}">
-                {{ u.name }}
-            </a>
-            {% endfor %}
-        </div>
-
-        <!-- Search Input -->
-        <div class="relative w-full md:w-72 flex-shrink-0">
-            <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+    <!-- Care Unit Search Bar -->
+    <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-4 sm:p-5 flex items-center justify-between gap-4">
+        <div class="relative flex-1">
+            <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
             <input type="text"
-                   id="admin-submission-search"
-                   placeholder="Search colleague, evaluator, or evaluation..."
-                   oninput="filterAdminSubmissions(this.value)"
-                   class="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-[#5D87FF]/20 focus:border-[#5D87FF] transition">
+                   id="admin-unit-search"
+                   placeholder="Search care units by name or location..."
+                   oninput="filterCareUnits(this.value)"
+                   class="w-full pl-11 pr-4 py-2.5 text-xs sm:text-sm rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white focus:ring-2 focus:ring-[#5D87FF]/20 focus:border-[#5D87FF] transition placeholder:text-slate-400">
+        </div>
+        <div class="hidden sm:flex items-center gap-2 text-xs text-slate-400 flex-shrink-0 font-medium">
+            <i class="fa-solid fa-hospital-user text-[#5D87FF]"></i>
+            <span>{{ unit_groups|length }} Care Unit{{ unit_groups|length|pluralize }}</span>
         </div>
     </div>
 
-    <!-- Unit-wise Cards List (Matching My Evaluations Design) -->
-    <div class="space-y-6" id="admin-unit-groups-container">
+    <!-- Unit-wise Cards List -->
+    <div class="space-y-4" id="admin-unit-groups-container">
+        <!-- Empty State for Unit Search -->
+        <div id="no-units-match-message" class="hidden bg-white rounded-3xl p-10 text-center border border-slate-100">
+            <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3 text-lg">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </div>
+            <h3 class="font-bold text-slate-700 text-sm">No care units found</h3>
+            <p class="text-xs text-slate-400 mt-1">Try adjusting your search terms.</p>
+        </div>
+
         {% for group in unit_groups %}
-        <div class="admin-unit-card bg-white rounded-3xl border border-slate-100 shadow-sm p-6 sm:p-7 space-y-6" data-unit-name="{{ group.unit_name|lower }}">
-            <!-- Unit Header Info -->
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
-                <div>
-                    <div class="flex items-center gap-2.5 mb-1.5 flex-wrap">
-                        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-[#5D87FF] border border-blue-100 flex items-center gap-1.5">
-                            <i class="fa-solid fa-clipboard-user text-[11px]"></i>
-                            {{ group.count }} Submission{{ group.count|pluralize }} Recorded
-                        </span>
+        <div class="admin-unit-card bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden" data-unit-name="{{ group.unit_name|lower }}" data-search-text="{{ group.unit_name|lower }} {{ group.unit_place|lower }}">
+
+            <!-- Unit Header Row (always visible) -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 sm:p-6">
+                <div class="flex items-center gap-4 min-w-0">
+                    <div class="w-11 h-11 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-base flex-shrink-0">
+                        <i class="fa-solid fa-hospital-user"></i>
                     </div>
-                    <h2 class="text-xl font-extrabold text-slate-800 flex items-center gap-2">
-                        <i class="fa-solid fa-door-open text-slate-400 text-sm"></i>
-                        {{ group.unit_name }}
-                    </h2>
-                    <p class="text-xs text-slate-400 mt-1 flex items-center gap-1">
-                        <i class="fa-solid fa-location-dot text-[11px]"></i>
-                        <span>Location: {{ group.unit_place }}</span>
-                        {% if group.unit %}
-                        <span>&bull;</span>
-                        <span>{{ group.unit.users.count }} Staff Members</span>
-                        {% endif %}
-                    </p>
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap mb-0.5">
+                            <h2 class="text-base font-extrabold text-slate-800">{{ group.unit_name }}</h2>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-[#5D87FF] border border-blue-100">
+                                {{ group.evaluation_groups|length }} Evaluation{{ group.evaluation_groups|length|pluralize }}
+                            </span>
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                {{ group.count }} Submission{{ group.count|pluralize }}
+                            </span>
+                        </div>
+                        <p class="text-xs text-slate-400 flex items-center gap-1">
+                            <i class="fa-solid fa-location-dot text-[10px]"></i>
+                            <span>{{ group.unit_place }}</span>
+                            {% if group.unit %}
+                            <span>&bull;</span>
+                            <span>{{ group.unit.users.count }} Staff Members</span>
+                            {% endif %}
+                        </p>
+                    </div>
                 </div>
 
-                <!-- Unit Peer Progress Bar / Summary -->
-                <div class="sm:text-right min-w-[180px]">
-                    <div class="text-xs font-bold text-slate-500 mb-1 flex items-center justify-between sm:justify-end gap-2">
-                        <span>Unit Peer Reviews</span>
-                        <span class="text-[#5D87FF] font-extrabold">{{ group.count }} Done</span>
-                    </div>
-                    <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                        <div class="bg-[#5D87FF] h-2.5 rounded-full w-full"></div>
-                    </div>
+                <!-- Right side: toggle -->
+                <div class="flex items-center gap-3 flex-shrink-0">
+                    <button type="button"
+                            onclick="toggleUnitEvals(this)"
+                            data-unit-id="unit-evals-{{ group.unit.id|default:forloop.counter }}"
+                            class="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-bold transition-all duration-200 whitespace-nowrap">
+                        <i class="fa-solid fa-list-check text-[#5D87FF]"></i>
+                        <span>View Evaluations</span>
+                        <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 toggle-chevron transition-transform duration-200"></i>
+                    </button>
                 </div>
             </div>
 
-            <!-- Evaluations in this Unit -->
-            <div class="space-y-4">
+            <!-- Collapsible Evaluations Panel -->
+            <div id="unit-evals-{{ group.unit.id|default:forloop.counter }}"
+                 class="unit-evals-panel hidden border-t border-slate-100 bg-slate-50/50 px-5 sm:px-6 pb-5 pt-4 space-y-3">
+
+                <!-- Header & Evaluation Search inside unit -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200/70">
+                    <p class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                        <i class="fa-solid fa-clipboard-list text-[#5D87FF]"></i>
+                        <span>Evaluations in {{ group.unit_name }}</span>
+                        <span class="text-[11px] font-semibold text-slate-400">({{ group.evaluation_groups|length }})</span>
+                    </p>
+                    <div class="relative w-full sm:w-80">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                        <input type="text"
+                               placeholder="Search evaluations or templates in this unit..."
+                               oninput="filterUnitEvaluations(this, 'unit-evals-{{ group.unit.id|default:forloop.counter }}')"
+                               class="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-[#5D87FF]/20 focus:border-[#5D87FF] transition placeholder:text-slate-400">
+                    </div>
+                </div>
+
+                <!-- Empty state for evaluation search within unit -->
+                <div class="eval-no-results hidden p-6 text-center bg-white rounded-2xl border border-slate-200">
+                    <p class="text-xs text-slate-400 italic">No evaluations matched your search in this unit.</p>
+                </div>
+
                 {% for eval_group in group.evaluation_groups %}
-                <div class="admin-eval-card rounded-2xl border border-slate-200/90 bg-slate-50/50 hover:bg-white hover:border-[#5D87FF]/40 hover:shadow-xs transition-all duration-200 p-4 sm:p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4"
-                     data-search-text="{{ group.unit_name|lower }} {{ eval_group.evaluation_title|lower }} {% for u in eval_group.users %}{{ u.user.get_full_name|lower }} {{ u.user.username|lower }} {{ u.user.job_title|lower }} {% endfor %}">
-                    <!-- Evaluation Header Info -->
+                <div class="admin-eval-card rounded-2xl border border-slate-200/90 bg-white hover:border-[#5D87FF]/40 hover:shadow-sm transition-all duration-200 p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4"
+                     data-search-text="{{ eval_group.evaluation_title|lower }} {{ eval_group.evaluation.template.title|lower }} {% for u in eval_group.users %}{{ u.user.get_full_name|lower }} {{ u.user.username|lower }} {% endfor %}">
+
+                    <!-- Evaluation Info -->
                     <div class="flex items-center gap-3 min-w-0">
-                        <div class="w-10 h-10 rounded-xl bg-blue-100/70 text-blue-700 flex items-center justify-center text-sm flex-shrink-0">
+                        <div class="w-9 h-9 rounded-xl bg-blue-100/70 text-blue-700 flex items-center justify-center text-sm flex-shrink-0">
                             <i class="fa-solid fa-clipboard-check"></i>
                         </div>
                         <div class="min-w-0">
-                            <h3 class="text-sm font-extrabold text-slate-800 truncate">
-                                {{ eval_group.evaluation_title }}
-                            </h3>
+                            <h3 class="text-sm font-extrabold text-slate-800 truncate">{{ eval_group.evaluation_title }}</h3>
                             {% if eval_group.evaluation.template %}
                             <p class="text-[11px] text-slate-400 truncate mt-0.5">
                                 Template: <span class="text-slate-600 font-medium">{{ eval_group.evaluation.template.title }}</span>
@@ -146,11 +133,10 @@
 
                     <!-- Badges & Action Buttons -->
                     <div class="flex items-center gap-2.5 flex-wrap flex-shrink-0">
-                        <span class="text-xs font-bold text-slate-600 bg-white px-3 py-1.5 rounded-xl border border-slate-200/80 shadow-2xs">
+                        <span class="text-xs font-bold text-slate-600 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200/80 shadow-2xs">
                             {{ eval_group.count }} Submission{{ eval_group.count|pluralize }}
                         </span>
 
-                        <!-- Modal Trigger Button: View Staff in Popup -->
                         <button type="button"
                                 onclick="openAdminEvalModal('modal-admin-eval-{{ group.unit.id|default:0 }}-{{ eval_group.evaluation_id }}')"
                                 class="px-3.5 py-1.5 rounded-xl bg-[#5D87FF] hover:bg-[#4570ea] text-white text-xs font-bold shadow-sm shadow-blue-500/20 transition flex items-center gap-1.5 whitespace-nowrap active:scale-95">
@@ -158,7 +144,6 @@
                             <span>View Staff ({{ eval_group.users|length }})</span>
                         </button>
 
-                        <!-- View Option for Evaluation: Evaluation Summary -->
                         <a href="{% url 'evaluations:evaluation_matrix' eval_group.evaluation_id %}{% if group.unit %}?unit={{ group.unit.id }}{% endif %}"
                            class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 shadow-2xs transition flex items-center gap-1.5 whitespace-nowrap active:scale-95"
                            title="View question-by-question evaluation summary across all users">
@@ -180,9 +165,7 @@
                                 </div>
                                 <div class="min-w-0">
                                     <div class="flex items-center gap-2 flex-wrap">
-                                        <h3 class="text-base font-extrabold text-slate-800 truncate">
-                                            {{ eval_group.evaluation_title }}
-                                        </h3>
+                                        <h3 class="text-base font-extrabold text-slate-800 truncate">{{ eval_group.evaluation_title }}</h3>
                                         <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-100">
                                             {{ group.unit_name }}
                                         </span>
@@ -222,9 +205,8 @@
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                                 {% for user_data in eval_group.users %}
                                 <div class="admin-modal-user-card p-3.5 rounded-xl border border-slate-200/70 bg-white hover:border-[#5D87FF]/40 hover:shadow-sm transition-all duration-200 flex items-center justify-between gap-3"
-                                     data-search-text="{{ user_data.user.get_full_name|lower }} {{ user_data.user.username|lower }} {{ user_data.user.job_title|lower }}">
+                                     data-search-text="{{ user_data.user.get_full_name|lower }} {{ user_data.user.username|lower }}">
                                     <div class="flex items-center gap-3 min-w-0">
-                                        <!-- Avatar Letter Initial -->
                                         <div class="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0 bg-blue-100 text-blue-700 border border-blue-200">
                                             {{ user_data.user.first_name|default:user_data.user.username|slice:":1"|upper }}
                                         </div>
@@ -233,17 +215,15 @@
                                                 {{ user_data.user.get_full_name|default:user_data.user.username }}
                                             </h4>
                                             <p class="text-[11px] text-slate-500 truncate">
-                                                {{ user_data.user.job_title|default:user_data.user.role|capfirst }} &bull; @{{ user_data.user.username }}
+                                                @{{ user_data.user.username }}
                                             </p>
-                                            <p class="text-[11px] text-slate-600 mt-1 flex items-center gap-1">
+                                            <p class="text-[11px] text-slate-600 mt-1">
                                                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-100">
                                                     <i class="fa-solid fa-users text-[9px]"></i> {{ user_data.count }} Peer Review{{ user_data.count|pluralize }} Received
                                                 </span>
                                             </p>
                                         </div>
                                     </div>
-
-                                    <!-- Action Button -->
                                     <div class="flex items-center gap-2 flex-shrink-0">
                                         <a href="{% url 'evaluations:admin_user_received_reviews' eval_group.evaluation_id user_data.user.id %}{% if group.unit %}?unit={{ group.unit.id }}{% endif %}"
                                            class="px-3.5 py-1.5 rounded-xl bg-[#5D87FF] hover:bg-[#4570ea] text-white text-xs font-bold shadow-sm shadow-blue-500/20 transition flex items-center gap-1.5 whitespace-nowrap active:scale-95">
@@ -270,7 +250,7 @@
                     </div>
                 </div>
                 {% empty %}
-                <p class="text-xs text-slate-400 italic">No evaluations recorded in this unit.</p>
+                <p class="text-xs text-slate-400 italic py-3">No evaluations recorded in this unit.</p>
                 {% endfor %}
             </div>
         </div>
@@ -287,6 +267,31 @@
 </div>
 
 <script>
+// Toggle unit evaluations panel
+function toggleUnitEvals(btn) {
+    const panelId = btn.getAttribute('data-unit-id');
+    const panel = document.getElementById(panelId);
+    if (!panel) return;
+
+    const isHidden = panel.classList.contains('hidden');
+    const chevron = btn.querySelector('.toggle-chevron');
+    const label = btn.querySelector('span');
+
+    if (isHidden) {
+        panel.classList.remove('hidden');
+        if (chevron) chevron.style.transform = 'rotate(180deg)';
+        if (label) label.textContent = 'Hide Evaluations';
+        btn.classList.add('bg-blue-50', 'border-[#5D87FF]/40', 'text-[#5D87FF]');
+        btn.classList.remove('bg-slate-50', 'text-slate-700');
+    } else {
+        panel.classList.add('hidden');
+        if (chevron) chevron.style.transform = 'rotate(0deg)';
+        if (label) label.textContent = 'View Evaluations';
+        btn.classList.remove('bg-blue-50', 'border-[#5D87FF]/40', 'text-[#5D87FF]');
+        btn.classList.add('bg-slate-50', 'text-slate-700');
+    }
+}
+
 function openAdminEvalModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
@@ -339,28 +344,55 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-// Filter main page evaluations and units
-function filterAdminSubmissions(query) {
+// Filter care units on the main page
+function filterCareUnits(query) {
     const q = query.toLowerCase().trim();
+    let visibleCount = 0;
     document.querySelectorAll('.admin-unit-card').forEach(unitCard => {
-        let visibleCount = 0;
-        unitCard.querySelectorAll('.admin-eval-card').forEach(evalCard => {
-            const text = evalCard.getAttribute('data-search-text') || '';
-            if (!q || text.includes(q)) {
-                evalCard.classList.remove('hidden');
-                visibleCount++;
-            } else {
-                evalCard.classList.add('hidden');
-            }
-        });
-
-        // Hide unit card if all evaluations inside are hidden
-        if (visibleCount > 0 || !q) {
+        const text = (unitCard.getAttribute('data-search-text') || '') + ' ' + (unitCard.getAttribute('data-unit-name') || '');
+        if (!q || text.includes(q)) {
             unitCard.classList.remove('hidden');
+            visibleCount++;
         } else {
             unitCard.classList.add('hidden');
         }
     });
+
+    const noUnitsEl = document.getElementById('no-units-match-message');
+    if (noUnitsEl) {
+        if (visibleCount === 0 && q) {
+            noUnitsEl.classList.remove('hidden');
+        } else {
+            noUnitsEl.classList.add('hidden');
+        }
+    }
+}
+
+// Filter evaluations within a specific care unit
+function filterUnitEvaluations(input, panelId) {
+    const q = input.value.toLowerCase().trim();
+    const panel = document.getElementById(panelId);
+    if (!panel) return;
+
+    let visibleCount = 0;
+    panel.querySelectorAll('.admin-eval-card').forEach(evalCard => {
+        const text = evalCard.getAttribute('data-search-text') || '';
+        if (!q || text.includes(q)) {
+            evalCard.classList.remove('hidden');
+            visibleCount++;
+        } else {
+            evalCard.classList.add('hidden');
+        }
+    });
+
+    const noResults = panel.querySelector('.eval-no-results');
+    if (noResults) {
+        if (visibleCount === 0 && q) {
+            noResults.classList.remove('hidden');
+        } else {
+            noResults.classList.add('hidden');
+        }
+    }
 }
 </script>
 {% endblock %}

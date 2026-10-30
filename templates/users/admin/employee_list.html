@@ -1,6 +1,6 @@
 {% extends 'dashboard_base.html' %}
 
-{% block title %}Employees - Tailwindadmin{% endblock %}
+{% block title %}Employees - Pinnacle Care Homes{% endblock %}
 
 {% block page_content %}
 <div class="space-y-6">
@@ -61,7 +61,7 @@
                                      class="w-10 h-10 rounded-xl object-cover border border-slate-200 bg-slate-50">
                                 <div>
                                     <a href="{% url 'employees:edit' employee.pk %}" class="font-bold text-slate-800 hover:text-[#5D87FF]">{{ employee.display_name }}</a>
-                                    <p class="text-xs text-slate-400">{{ employee.job_title|default:"Care Staff" }}</p>
+                                    <p class="text-xs font-mono text-slate-400">@{{ employee.username }}</p>
                                 </div>
                             </div>
                         </td>
@@ -80,11 +80,20 @@
                             </div>
                         </td>
                         <td class="py-4 px-6 text-right">
-                            <a href="{% url 'employees:edit' employee.pk %}"
-                               class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-blue-50 hover:text-[#5D87FF] hover:border-blue-200 transition">
-                                <i class="fa-solid fa-pen-to-square text-[10px]"></i>
-                                Edit
-                            </a>
+                            <div class="inline-flex items-center gap-2">
+                                <button type="button"
+                                        onclick="openResetPasswordModal('{{ employee.pk }}', '{{ employee.display_name|escapejs }}', '@{{ employee.username|escapejs }}', '{{ employee.photo_url|escapejs }}', '{% url 'employees:reset_password' employee.pk %}')"
+                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-amber-200 text-xs font-semibold text-amber-700 bg-amber-50/50 hover:bg-amber-100 hover:text-amber-800 hover:border-amber-300 transition cursor-pointer active:scale-95"
+                                        title="Reset Password for {{ employee.display_name }}">
+                                    <i class="fa-solid fa-key text-[10px]"></i>
+                                    <span>Reset Password</span>
+                                </button>
+                                <a href="{% url 'employees:edit' employee.pk %}"
+                                   class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-blue-50 hover:text-[#5D87FF] hover:border-blue-200 transition">
+                                    <i class="fa-solid fa-pen-to-square text-[10px]"></i>
+                                    <span>Edit</span>
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -110,4 +119,162 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Reset Password Modal -->
+<div id="reset-password-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs transition-opacity duration-200">
+    <div class="bg-white rounded-3xl border border-slate-100 shadow-2xl max-w-md w-full overflow-hidden p-6 sm:p-7 space-y-5 animate-in fade-in zoom-in-95 duration-150">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div class="flex items-center gap-2.5">
+                <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-sm font-bold">
+                    <i class="fa-solid fa-key"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-extrabold text-slate-800">Reset Password</h3>
+                    <p class="text-[11px] text-slate-400">Set a new sign-in password</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeResetPasswordModal()" class="w-8 h-8 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center transition cursor-pointer">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <!-- Employee Info Summary in Modal -->
+        <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 flex items-center gap-3">
+            <img id="modal-employee-photo" src="" alt="" class="w-10 h-10 rounded-xl object-cover border border-slate-200 bg-white">
+            <div class="min-w-0 flex-1">
+                <h4 class="text-xs font-bold text-slate-800 truncate" id="modal-employee-name">Employee Name</h4>
+                <p class="text-[11px] font-mono text-slate-400 truncate" id="modal-employee-username">@username</p>
+            </div>
+        </div>
+
+        <!-- Reset Form -->
+        <form method="POST" id="reset-password-form" class="space-y-4" onsubmit="return validatePasswordMatch()">
+            {% csrf_token %}
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">New Password</label>
+                <div class="relative">
+                    <input type="password" name="new_password" id="modal-new-password" required minlength="8"
+                           class="w-full px-4 py-2.5 pr-10 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 bg-slate-50/50"
+                           placeholder="At least 8 chars with number & symbol">
+                    <button type="button" onclick="togglePasswordVisibility('modal-new-password', this)"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer">
+                        <i class="fa-regular fa-eye text-xs"></i>
+                    </button>
+                </div>
+                <p class="text-[11px] text-slate-400 mt-1">Must be at least 8 characters with a letter, number, and special character.</p>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Confirm Password</label>
+                <div class="relative">
+                    <input type="password" name="confirm_password" id="modal-confirm-password" required minlength="8"
+                           class="w-full px-4 py-2.5 pr-10 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 bg-slate-50/50"
+                           placeholder="Re-enter new password">
+                    <button type="button" onclick="togglePasswordVisibility('modal-confirm-password', this)"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer">
+                        <i class="fa-regular fa-eye text-xs"></i>
+                    </button>
+                </div>
+                <p id="password-match-error" class="text-xs text-rose-500 mt-1 hidden">Passwords do not match.</p>
+            </div>
+
+            <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
+                <button type="button" onclick="closeResetPasswordModal()"
+                        class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition cursor-pointer">
+                    Cancel
+                </button>
+                <button type="submit"
+                        class="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-md shadow-amber-500/20 transition flex items-center gap-1.5 cursor-pointer active:scale-95">
+                    <i class="fa-solid fa-key text-[10px]"></i>
+                    <span>Set New Password</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openResetPasswordModal(empId, empName, empUsername, empPhoto, resetUrl) {
+    const modal = document.getElementById('reset-password-modal');
+    const form = document.getElementById('reset-password-form');
+    document.getElementById('modal-employee-name').textContent = empName;
+    document.getElementById('modal-employee-username').textContent = empUsername;
+    const photoImg = document.getElementById('modal-employee-photo');
+    if (photoImg) photoImg.src = empPhoto;
+    form.action = resetUrl;
+    document.getElementById('modal-new-password').value = '';
+    document.getElementById('modal-confirm-password').value = '';
+    document.getElementById('password-match-error').classList.add('hidden');
+    modal.classList.remove('hidden');
+    document.getElementById('modal-new-password').focus();
+}
+
+function closeResetPasswordModal() {
+    const modal = document.getElementById('reset-password-modal');
+    modal.classList.add('hidden');
+}
+
+function togglePasswordVisibility(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const icon = btn.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+    }
+}
+
+function validatePasswordMatch() {
+    const p1 = document.getElementById('modal-new-password').value;
+    const p2 = document.getElementById('modal-confirm-password').value;
+    const err = document.getElementById('password-match-error');
+
+    if (p1.length < 8) {
+        err.textContent = 'Password must be at least 8 characters long.';
+        err.classList.remove('hidden');
+        return false;
+    }
+    if (!/[A-Za-z]/.test(p1)) {
+        err.textContent = 'Password must contain at least one letter.';
+        err.classList.remove('hidden');
+        return false;
+    }
+    if (!/\d/.test(p1)) {
+        err.textContent = 'Password must contain at least one number (0-9).';
+        err.classList.remove('hidden');
+        return false;
+    }
+    if (!/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?/~`]/.test(p1)) {
+        err.textContent = 'Password must contain at least one special character (e.g. !@#$%^&*).';
+        err.classList.remove('hidden');
+        return false;
+    }
+    if (p1 !== p2) {
+        err.textContent = 'Passwords do not match.';
+        err.classList.remove('hidden');
+        return false;
+    }
+    err.classList.add('hidden');
+    return true;
+}
+
+// Close on backdrop click
+document.getElementById('reset-password-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeResetPasswordModal();
+    }
+});
+
+// Close on Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeResetPasswordModal();
+    }
+});
+</script>
 {% endblock %}

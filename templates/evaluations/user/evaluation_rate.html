@@ -29,8 +29,6 @@
             <span class="text-[11px] font-bold uppercase tracking-wider text-blue-600 block mb-0.5">You are evaluating peer</span>
             <h2 class="text-lg font-black text-slate-800 truncate">{{ evaluatee.get_full_name|default:evaluatee.username }}</h2>
             <p class="text-xs text-slate-500 mt-0.5 flex items-center gap-2">
-                <span>{{ evaluatee.job_title|default:"Care Staff" }}</span>
-                <span>&bull;</span>
                 <span>Care Unit: <strong class="text-slate-700">{{ unit.name }}</strong> ({{ unit.place }})</span>
             </p>
         </div>

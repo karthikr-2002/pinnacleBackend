@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}Create Account - Tailwindadmin{% endblock %}
+{% block title %}Create Account - Pinnacle Care Homes{% endblock %}
 
 {% block content %}
 <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-[#ECF2FF]/60 via-[#F4F7FB] to-[#E8F7FF]/50 relative overflow-hidden">
@@ -10,15 +11,10 @@
     <div class="w-full max-w-lg relative z-10">
         <!-- Logo and Brand -->
         <div class="flex flex-col items-center mb-8 text-center">
-            <div class="flex items-center gap-2.5">
-                <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/30">
-                    <div class="w-4 h-4 rounded-full bg-white/90"></div>
-                </div>
-                <span class="text-2xl font-bold tracking-tight text-slate-800">
-                    Tailwind<span class="text-[#5D87FF]">admin</span>
-                </span>
-            </div>
-            <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mt-2">Care Management System</p>
+            <a href="/" class="flex items-center gap-2.5">
+                <img src="{% static 'images/logo.png' %}" alt="Pinnacle Care Homes" class="h-16 object-contain">
+            </a>
+            <p class="text-xs font-semibold uppercase tracking-wider text-slate-400 mt-3">Care Management System</p>
         </div>
 
         <div class="bg-white rounded-3xl shadow-[0_15px_40px_-15px_rgba(0,0,0,0.07)] border border-slate-100 p-8 sm:p-10 transition-all duration-300">

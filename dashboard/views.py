@@ -84,7 +84,7 @@ def dashboard_view(request):
 
         context = {
             'is_admin': True,
-            'page_title': 'Modern Dashboard',
+            'page_title': 'Home',
             'active_menu': 'modern',
             'user_name': user.get_full_name() or user.username,
             'total_evaluations': total_evaluations,
@@ -105,41 +105,40 @@ def dashboard_view(request):
     else:
         # Non-admin Care Staff view
         today = timezone.now().date()
-        user_units = user.assigned_units.all()
+        user_units = list(user.assigned_units.prefetch_related('users').all())
         available_evals = Evaluation.objects.filter(
             units__in=user_units,
-            start_date__lte=today
-        ).distinct()
+            start_date__lte=today,
+            status__in=['not_started', 'in_progress', 'active']
+        ).distinct().select_related('template')
 
-        completed_subs = EvaluationSubmission.objects.filter(evaluator=user).count()
-        received_subs = EvaluationSubmission.objects.filter(evaluatee=user).count()
+        in_progress_evals_count = 0
+        not_started_evals_count = 0
+        completed_evals_count = 0
 
-        recent_submissions = EvaluationSubmission.objects.filter(
-            evaluator=user
-        ).select_related('evaluatee', 'unit', 'evaluation').order_by('-submitted_at')[:5]
-
-        user_evaluations = []
-        for ev in available_evals[:4]:
+        for ev in available_evals:
             done, total = ev.get_user_progress(user)
-            pct = round((done / total) * 100) if total > 0 else 0
-            user_evaluations.append({
-                'evaluation': ev,
-                'completed': done,
-                'total': total,
-                'pct': pct,
-            })
+            is_done = (done == total and total > 0)
+            if is_done:
+                completed_evals_count += 1
+            elif done > 0:
+                in_progress_evals_count += 1
+            else:
+                not_started_evals_count += 1
+
+        total_pending_evals = in_progress_evals_count + not_started_evals_count
 
         context = {
             'is_admin': False,
-            'page_title': 'Modern Dashboard',
+            'page_title': 'Home',
             'active_menu': 'modern',
             'user_name': user.get_full_name() or user.username,
-            'available_evals_count': available_evals.count(),
-            'completed_subs': completed_subs,
-            'received_subs': received_subs,
-            'assigned_units_count': user_units.count(),
-            'recent_submissions': recent_submissions,
-            'user_evaluations': user_evaluations,
+            'user_units': user_units,
+            'assigned_units_count': len(user_units),
+            'total_pending_evals': total_pending_evals,
+            'in_progress_evals_count': in_progress_evals_count,
+            'not_started_evals_count': not_started_evals_count,
+            'completed_evals_count': completed_evals_count,
         }
 
     return render(request, 'dashboard/index.html', context)

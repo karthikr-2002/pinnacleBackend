@@ -1,20 +1,14 @@
 {% extends 'dashboard_base.html' %}
 
-{% block title %}{{ title }} - Tailwindadmin{% endblock %}
+{% block title %}{{ title }} - Pinnacle Care Homes{% endblock %}
 
 {% block page_content %}
 <div class="max-w-2xl mx-auto space-y-6">
     <!-- Breadcrumb & Header -->
     <div>
-        {% if unit %}
-        <a href="{% url 'evaluations:unit_detail' unit.pk %}" class="text-xs font-semibold text-[#5D87FF] hover:underline flex items-center gap-1.5 mb-2">
-            <i class="fa-solid fa-arrow-left text-[10px]"></i> Back to {{ unit.name }}
-        </a>
-        {% else %}
         <a href="{% url 'evaluations:unit_list' %}" class="text-xs font-semibold text-[#5D87FF] hover:underline flex items-center gap-1.5 mb-2">
-            <i class="fa-solid fa-arrow-left text-[10px]"></i> Back to Units
+            <i class="fa-solid fa-arrow-left text-[10px]"></i> Back to Care Units
         </a>
-        {% endif %}
         <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">{{ title }}</h1>
         <p class="text-sm text-slate-500 mt-1">{{ subtitle }}</p>
     </div>
@@ -38,16 +32,10 @@
 
             <!-- Form Action Buttons -->
             <div class="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
-                {% if unit %}
-                <a href="{% url 'evaluations:unit_detail' unit.pk %}" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition">
-                    Cancel
-                </a>
-                {% else %}
                 <a href="{% url 'evaluations:unit_list' %}" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition">
                     Cancel
                 </a>
-                {% endif %}
-                <button type="submit" class="px-5 py-2.5 rounded-xl bg-[#5D87FF] hover:bg-[#4570ea] text-white text-xs font-semibold shadow-md shadow-blue-500/20 transition flex items-center gap-2 cursor-pointer">
+                <button type="button" onclick="handleUnitSaveClick()" class="px-5 py-2.5 rounded-xl bg-[#5D87FF] hover:bg-[#4570ea] text-white text-xs font-semibold shadow-md shadow-blue-500/20 transition flex items-center gap-2 cursor-pointer active:scale-95">
                     <i class="fa-solid fa-check"></i>
                     <span>{% if unit %}Save Changes{% else %}Save Care Unit{% endif %}</span>
                 </button>
@@ -55,4 +43,114 @@
         </form>
     </div>
 </div>
+
+<!-- Confirmation Modal for Create & Edit Care Unit -->
+<div id="confirm-save-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs transition-opacity duration-200">
+    <div class="bg-white rounded-3xl border border-slate-100 shadow-2xl max-w-md w-full overflow-hidden p-6 sm:p-7 space-y-5 animate-in fade-in zoom-in-95 duration-150">
+        <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-blue-50 text-[#5D87FF] border border-blue-100 flex items-center justify-center text-xl flex-shrink-0">
+                <i class="fa-solid fa-hospital-user"></i>
+            </div>
+            <div class="min-w-0 flex-1">
+                <h3 class="text-base font-extrabold text-slate-800">
+                    {% if unit %}Confirm Changes{% else %}Confirm New Care Unit{% endif %}
+                </h3>
+                <p class="text-xs text-slate-500 mt-1">
+                    {% if unit %}
+                    Are you sure you want to save the changes to this care unit?
+                    {% else %}
+                    Are you sure you want to create and save this care unit?
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 text-xs text-slate-600 space-y-2">
+            <div class="flex items-center justify-between">
+                <span class="text-slate-400">Unit Name:</span>
+                <span class="font-bold text-slate-800 truncate ml-2" id="confirm-modal-unit-name">{% if unit %}{{ unit.name }}{% else %}—{% endif %}</span>
+            </div>
+            <div class="flex items-center justify-between">
+                <span class="text-slate-400">Location:</span>
+                <span class="font-semibold text-slate-700 ml-2" id="confirm-modal-unit-place">{% if unit %}{{ unit.place }}{% else %}—{% endif %}</span>
+            </div>
+        </div>
+
+        <div class="pt-2 flex items-center justify-end gap-3">
+            <button type="button" onclick="closeConfirmSaveModal()"
+                    class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition cursor-pointer">
+                Cancel
+            </button>
+            <button type="button" onclick="submitUnitForm()"
+                    class="px-5 py-2.5 rounded-xl bg-[#5D87FF] hover:bg-[#4570ea] text-white text-xs font-semibold shadow-md shadow-blue-500/20 transition flex items-center gap-1.5 cursor-pointer active:scale-95">
+                <i class="fa-solid fa-check text-[11px]"></i>
+                <span>Yes, {% if unit %}Save Changes{% else %}Save Care Unit{% endif %}</span>
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let isConfirmed = false;
+
+    function handleUnitSaveClick() {
+        const form = document.getElementById('unit-form');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+        const nameInput = document.querySelector('input[name="name"]');
+        const placeInput = document.querySelector('input[name="place"]');
+
+        if (nameInput) {
+            document.getElementById('confirm-modal-unit-name').textContent = nameInput.value || 'Care Unit';
+        }
+        if (placeInput) {
+            document.getElementById('confirm-modal-unit-place').textContent = placeInput.value || '—';
+        }
+
+        document.getElementById('confirm-save-modal').classList.remove('hidden');
+    }
+
+    function closeConfirmSaveModal() {
+        const modal = document.getElementById('confirm-save-modal');
+        if (modal) modal.classList.add('hidden');
+    }
+
+    function submitUnitForm() {
+        isConfirmed = true;
+        document.getElementById('unit-form').submit();
+    }
+
+    // Intercept Enter key submit
+    const unitForm = document.getElementById('unit-form');
+    if (unitForm) {
+        unitForm.addEventListener('submit', function (e) {
+            if (!isConfirmed) {
+                e.preventDefault();
+                handleUnitSaveClick();
+            }
+        });
+    }
+
+    // Close on backdrop click
+    const confirmModal = document.getElementById('confirm-save-modal');
+    if (confirmModal) {
+        confirmModal.addEventListener('click', function (e) {
+            if (e.target === this) {
+                closeConfirmSaveModal();
+            }
+        });
+    }
+
+    // Close on Escape key
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            closeConfirmSaveModal();
+        }
+    });
+</script>
 {% endblock %}

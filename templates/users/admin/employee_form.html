@@ -1,6 +1,6 @@
 {% extends 'dashboard_base.html' %}
 
-{% block title %}{{ title }} - Tailwindadmin{% endblock %}
+{% block title %}{{ title }} - Pinnacle Care Homes{% endblock %}
 
 {% block page_content %}
 <div class="max-w-2xl mx-auto space-y-6">
@@ -29,7 +29,7 @@
     {% endif %}
 
     <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 sm:p-8">
-        <form method="POST" enctype="multipart/form-data" class="space-y-5" {% if not units %}aria-disabled="true"{% endif %}>
+        <form method="POST" id="employee-form" enctype="multipart/form-data" class="space-y-5" {% if not units %}aria-disabled="true"{% endif %}>
             {% csrf_token %}
 
             <div>
@@ -40,22 +40,30 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Username</label>
+                    {{ form.username }}
+                    <p class="text-[11px] text-slate-400 mt-1">The employee will use this to sign in.</p>
+                    {% if form.username.errors %}<p class="text-xs text-rose-500 mt-1">{{ form.username.errors.0 }}</p>{% endif %}
+                </div>
+                <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Employee ID</label>
                     {{ form.employee_id }}
-                    <p class="text-[11px] text-slate-400 mt-1">Used as the employee login username.</p>
+                    <p class="text-[11px] text-slate-400 mt-1">Internal staff identification number.</p>
                     {% if form.employee_id.errors %}<p class="text-xs text-rose-500 mt-1">{{ form.employee_id.errors.0 }}</p>{% endif %}
                 </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div>
                     <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Contact Number</label>
                     {{ form.phone }}
                     {% if form.phone.errors %}<p class="text-xs text-rose-500 mt-1">{{ form.phone.errors.0 }}</p>{% endif %}
                 </div>
-            </div>
-
-            <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Email</label>
-                {{ form.email }}
-                {% if form.email.errors %}<p class="text-xs text-rose-500 mt-1">{{ form.email.errors.0 }}</p>{% endif %}
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Email</label>
+                    {{ form.email }}
+                    {% if form.email.errors %}<p class="text-xs text-rose-500 mt-1">{{ form.email.errors.0 }}</p>{% endif %}
+                </div>
             </div>
 
             <div>
@@ -70,18 +78,33 @@
                 </div>
             </div>
 
+            {% if not is_edit %}
             <div>
                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Password</label>
                 {{ form.password }}
                 <p class="text-[11px] text-slate-400 mt-1">
-                    {% if is_edit %}
-                    Leave blank to keep the current password. Minimum 8 characters if you set a new one.
-                    {% else %}
-                    Minimum 8 characters. The employee will use this with their Employee ID to sign in.
-                    {% endif %}
+                    Must be at least 8 characters and include at least one letter, one number (0-9), and one special character (e.g. !@#$%).
                 </p>
                 {% if form.password.errors %}<p class="text-xs text-rose-500 mt-1">{{ form.password.errors.0 }}</p>{% endif %}
             </div>
+            {% else %}
+            <div class="p-4 rounded-2xl bg-amber-50/60 border border-amber-200/70 flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                        <i class="fa-solid fa-key"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <h4 class="text-xs font-bold text-slate-800">Password</h4>
+                        <p class="text-[11px] text-slate-500">Need to change this staff member's password?</p>
+                    </div>
+                </div>
+                <a href="{% url 'employees:reset_password' employee.pk %}"
+                   class="px-3 py-1.5 rounded-lg bg-white border border-amber-200 hover:border-amber-300 text-amber-800 text-xs font-semibold shadow-2xs hover:bg-amber-50 transition flex items-center gap-1.5 whitespace-nowrap active:scale-95">
+                    <i class="fa-solid fa-rotate-right text-[10px]"></i>
+                    <span>Reset Password</span>
+                </a>
+            </div>
+            {% endif %}
 
             <div>
                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
@@ -93,13 +116,64 @@
             </div>
 
             <div class="pt-2 flex items-center justify-end gap-3">
-                <a href="{% url 'employees:list' %}" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50">Cancel</a>
-                <button type="submit" {% if not units %}disabled{% endif %}
-                        class="px-5 py-2.5 rounded-xl bg-[#5D87FF] hover:bg-[#4570ea] disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold shadow-md shadow-blue-500/20">
-                    {{ submit_label }}
+                <a href="{% url 'employees:list' %}" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition">Cancel</a>
+                <button type="button" onclick="handleSaveClick()" {% if not units %}disabled{% endif %}
+                        class="px-5 py-2.5 rounded-xl bg-[#5D87FF] hover:bg-[#4570ea] disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs font-semibold shadow-md shadow-blue-500/20 transition cursor-pointer active:scale-95">
+                    <i class="fa-solid fa-check"></i>
+                    <span>{{ submit_label }}</span>
                 </button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- Confirmation Modal for Create & Edit Employee -->
+<div id="confirm-save-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs transition-opacity duration-200">
+    <div class="bg-white rounded-3xl border border-slate-100 shadow-2xl max-w-md w-full overflow-hidden p-6 sm:p-7 space-y-5 animate-in fade-in zoom-in-95 duration-150">
+        <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-blue-50 text-[#5D87FF] border border-blue-100 flex items-center justify-center text-xl flex-shrink-0">
+                <i class="fa-solid fa-user-{% if is_edit %}pen{% else %}plus{% endif %}"></i>
+            </div>
+            <div class="min-w-0 flex-1">
+                <h3 class="text-base font-extrabold text-slate-800">
+                    {% if is_edit %}Confirm Changes{% else %}Confirm New Employee{% endif %}
+                </h3>
+                <p class="text-xs text-slate-500 mt-1">
+                    {% if is_edit %}
+                    Are you sure you want to save the changes to this employee's profile?
+                    {% else %}
+                    Are you sure you want to create this new employee account?
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 text-xs text-slate-600 space-y-2">
+            <div class="flex items-center justify-between">
+                <span class="text-slate-400">Employee:</span>
+                <span class="font-bold text-slate-800 truncate ml-2" id="confirm-modal-name">{% if employee %}{{ employee.display_name }}{% else %}—{% endif %}</span>
+            </div>
+            <div class="flex items-center justify-between">
+                <span class="text-slate-400">Username:</span>
+                <span class="font-mono font-bold text-slate-700 ml-2" id="confirm-modal-username">{% if employee %}@{{ employee.username }}{% else %}—{% endif %}</span>
+            </div>
+            <div class="flex items-center justify-between">
+                <span class="text-slate-400">Care Unit:</span>
+                <span class="font-semibold text-slate-700 ml-2" id="confirm-modal-unit">—</span>
+            </div>
+        </div>
+
+        <div class="pt-2 flex items-center justify-end gap-3">
+            <button type="button" onclick="closeConfirmSaveModal()"
+                    class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition cursor-pointer">
+                Cancel
+            </button>
+            <button type="button" onclick="submitEmployeeForm()"
+                    class="px-5 py-2.5 rounded-xl bg-[#5D87FF] hover:bg-[#4570ea] text-white text-xs font-semibold shadow-md shadow-blue-500/20 transition flex items-center gap-1.5 cursor-pointer active:scale-95">
+                <i class="fa-solid fa-check text-[11px]"></i>
+                <span>Yes, {{ submit_label }}</span>
+            </button>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -115,5 +189,71 @@
             preview.src = URL.createObjectURL(file);
         });
     }
+
+    let isConfirmed = false;
+
+    function handleSaveClick() {
+        const form = document.getElementById('employee-form');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+        const nameInput = document.querySelector('input[name="full_name"]');
+        const usernameInput = document.querySelector('input[name="username"]');
+        const unitSelect = document.querySelector('select[name="unit"]');
+
+        if (nameInput) {
+            document.getElementById('confirm-modal-name').textContent = nameInput.value || 'Employee';
+        }
+        if (usernameInput) {
+            document.getElementById('confirm-modal-username').textContent = '@' + (usernameInput.value || '');
+        }
+        if (unitSelect && unitSelect.selectedIndex >= 0) {
+            const unitText = unitSelect.options[unitSelect.selectedIndex].text;
+            document.getElementById('confirm-modal-unit').textContent = unitText || '—';
+        }
+
+        document.getElementById('confirm-save-modal').classList.remove('hidden');
+    }
+
+    function closeConfirmSaveModal() {
+        const modal = document.getElementById('confirm-save-modal');
+        if (modal) modal.classList.add('hidden');
+    }
+
+    function submitEmployeeForm() {
+        isConfirmed = true;
+        const form = document.getElementById('employee-form');
+        form.submit();
+    }
+
+    // Intercept form submission if triggered by Enter key
+    const employeeForm = document.getElementById('employee-form');
+    if (employeeForm) {
+        employeeForm.addEventListener('submit', function (e) {
+            if (!isConfirmed) {
+                e.preventDefault();
+                handleSaveClick();
+            }
+        });
+    }
+
+    // Close on backdrop click
+    const confirmModal = document.getElementById('confirm-save-modal');
+    if (confirmModal) {
+        confirmModal.addEventListener('click', function (e) {
+            if (e.target === this) {
+                closeConfirmSaveModal();
+            }
+        });
+    }
+
+    // Close on Escape key
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            closeConfirmSaveModal();
+        }
+    });
 </script>
 {% endblock %}

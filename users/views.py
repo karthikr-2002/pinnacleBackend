@@ -1,11 +1,11 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import login, logout, authenticate
+from django.contrib.auth import login, logout, authenticate, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q, Value
 from django.db.models.functions import Concat
-from .forms import UserLoginForm, UserRegisterForm, EmployeeCreateForm, EmployeeEditForm
+from .forms import UserLoginForm, UserRegisterForm, EmployeeCreateForm, EmployeeEditForm, EmployeeResetPasswordForm, UserProfileForm, UserSelfPasswordChangeForm
 from .models import User
 
 
@@ -160,4 +160,77 @@ def employee_edit(request, pk):
         'is_edit': True,
         'employee': employee,
         'active_menu': 'employees',
+    })
+
+
+@login_required(login_url='users:login')
+def employee_reset_password(request, pk):
+    if not is_admin(request.user):
+        raise PermissionDenied('Only administrators can reset employee passwords.')
+
+    employee = get_object_or_404(
+        User.objects.exclude(role='admin').exclude(is_superuser=True),
+        pk=pk,
+    )
+
+    if request.method == 'POST':
+        form = EmployeeResetPasswordForm(employee, request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(
+                request,
+                f"Password for employee '{employee.display_name}' (@{employee.username}) was successfully reset."
+            )
+            return redirect('employees:list')
+        messages.error(request, 'Please correct the errors below.')
+    else:
+        form = EmployeeResetPasswordForm(employee)
+
+    return render(request, 'users/admin/employee_reset_password.html', {
+        'form': form,
+        'employee': employee,
+        'title': 'Reset Employee Password',
+        'active_menu': 'employees',
+    })
+
+
+@login_required(login_url='users:login')
+def profile_view(request):
+    """View and update current user's profile details and password."""
+    user = request.user
+    user_units = user.assigned_units.all()
+    show_edit_modal = 'edit' in request.GET
+    show_password_modal = 'password' in request.GET
+
+    profile_form = UserProfileForm(instance=user)
+    password_form = UserSelfPasswordChangeForm(user)
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'edit_profile':
+            profile_form = UserProfileForm(request.POST, request.FILES, instance=user)
+            if profile_form.is_valid():
+                profile_form.save()
+                messages.success(request, "Your profile details have been updated successfully.")
+                return redirect('users:profile')
+            messages.error(request, "Please correct the errors in the profile form.")
+            show_edit_modal = True
+        elif action == 'change_password':
+            password_form = UserSelfPasswordChangeForm(user, request.POST)
+            if password_form.is_valid():
+                password_form.save()
+                update_session_auth_hash(request, user)
+                messages.success(request, "Your password has been changed successfully.")
+                return redirect('users:profile')
+            messages.error(request, "Please correct the errors in the password form.")
+            show_password_modal = True
+
+    return render(request, 'users/profile.html', {
+        'profile_form': profile_form,
+        'password_form': password_form,
+        'user_obj': user,
+        'user_units': user_units,
+        'show_edit_modal': show_edit_modal,
+        'show_password_modal': show_password_modal,
+        'active_menu': 'profile',
     })

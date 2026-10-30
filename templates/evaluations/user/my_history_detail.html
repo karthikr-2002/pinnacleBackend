@@ -28,21 +28,6 @@
         </div>
     </div>
 
-    <!-- Rating Summary Banner -->
-    <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 flex items-center justify-between">
-        <div>
-            <span class="text-xs text-slate-400 font-semibold uppercase tracking-wider">
-                Average Score {% if submission.evaluator == request.user %}You Awarded{% else %}Awarded by {{ submission.evaluator.get_full_name|default:submission.evaluator.username }}{% endif %}
-            </span>
-            <div class="text-3xl font-black text-slate-800 mt-1 flex items-baseline gap-2">
-                {{ submission.average_score }} <span class="text-sm font-medium text-slate-400">/ 5.0</span>
-            </div>
-        </div>
-        <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center text-xl">
-            <i class="fa-solid fa-star"></i>
-        </div>
-    </div>
-
     <!-- Questions & Ratings Given -->
     <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 sm:p-8 space-y-4">
         <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-2">

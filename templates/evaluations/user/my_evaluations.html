@@ -1,6 +1,6 @@
 {% extends 'dashboard_base.html' %}
 
-{% block title %}My Peer Evaluations - Tailwindadmin{% endblock %}
+{% block title %}My Peer Evaluations - Pinnacle Care Homes{% endblock %}
 
 {% block page_content %}
 <div class="space-y-6">
@@ -25,19 +25,19 @@
     <!-- Evaluations List -->
     <div class="space-y-6">
         {% for item in evaluations_data %}
-        <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 sm:p-7 space-y-6">
+        <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 sm:p-7 space-y-5">
             <!-- Evaluation Header Info -->
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
-                <div>
-                    <div class="flex items-center gap-2.5 mb-1.5">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+                <div class="space-y-1.5 flex-1 min-w-0">
+                    <div class="flex items-center gap-2.5 flex-wrap">
                         <span class="px-2.5 py-0.5 rounded-full text-xs font-bold
-                            {% if item.is_fully_completed %}
-                                bg-emerald-50 text-emerald-600 border border-emerald-100
+                            {% if item.completed_count == 0 %}
+                                bg-amber-50 text-amber-700 border border-amber-200
                             {% else %}
                                 bg-blue-50 text-[#5D87FF] border border-blue-100
                             {% endif %}">
-                            {% if item.is_fully_completed %}
-                                <i class="fa-solid fa-circle-check me-1"></i> All Colleagues Evaluated
+                            {% if item.completed_count == 0 %}
+                                <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 me-1"></span> Not Started
                             {% else %}
                                 <i class="fa-solid fa-arrows-rotate me-1"></i> In Progress ({{ item.completed_count }}/{{ item.total_peers }})
                             {% endif %}
@@ -46,8 +46,10 @@
                             {{ item.questions_count }} Questions per peer
                         </span>
                     </div>
-                    <h2 class="text-xl font-bold text-slate-800">{{ item.evaluation.title }}</h2>
-                    <p class="text-xs text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
+
+                    <h2 class="text-xl font-extrabold text-slate-800 tracking-tight">{{ item.evaluation.title }}</h2>
+
+                    <p class="text-xs text-slate-500 flex items-center gap-2 flex-wrap">
                         <span>Template: <strong class="text-slate-700">{{ item.evaluation.template.title }}</strong></span>
                         <span>&bull;</span>
                         <span>Started: <strong class="text-slate-700">{{ item.evaluation.start_date|date:"M d, Y" }}</strong></span>
@@ -56,26 +58,40 @@
                         <span class="inline-flex items-center gap-1 text-slate-600"><i class="fa-regular fa-clock text-[10px] text-amber-500"></i> Due: <strong class="text-slate-700">{{ item.evaluation.end_date|date:"M d, Y" }}</strong></span>
                         {% endif %}
                     </p>
-
                 </div>
 
-                <!-- Progress Pill / Bar -->
-                <div class="sm:text-right min-w-[180px]">
-                    <div class="flex items-center justify-between sm:justify-end gap-2 text-xs font-bold text-slate-700 mb-1.5">
-                        <span>Unit Peer Progress</span>
-                        <span class="text-[#5D87FF]">{{ item.completed_count }} / {{ item.total_peers }}</span>
+                <!-- Right Side: Progress & "Evaluate" Trigger Button -->
+                <div class="flex items-center gap-4 sm:gap-6 flex-wrap justify-between lg:justify-end">
+                    <!-- Progress Bar -->
+                    <div class="min-w-[130px] sm:min-w-[160px]">
+                        <div class="flex items-center justify-between gap-2 text-xs font-bold text-slate-700 mb-1.5">
+                            <span>Unit Peer Progress</span>
+                            <span class="text-[#5D87FF] font-extrabold">{{ item.completed_count }} / {{ item.total_peers }}</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                            <div class="bg-[#5D87FF] h-2 rounded-full transition-all duration-300" style="width: {{ item.progress_pct }}%"></div>
+                        </div>
                     </div>
-                    <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                        <div class="bg-[#5D87FF] h-2.5 rounded-full transition-all duration-300" style="width: {{ item.progress_pct }}%"></div>
-                    </div>
+
+                    <!-- "Evaluate" Button (reveals colleagues) -->
+                    <button type="button" 
+                            onclick="toggleColleagues('peers-{{ item.evaluation.id }}', this)"
+                            class="btn-toggle-eval px-5 py-2.5 rounded-xl bg-[#5D87FF] hover:bg-[#4570ea] text-white text-xs font-bold transition flex items-center gap-2 shadow-sm shadow-blue-500/20 active:scale-95 cursor-pointer flex-shrink-0">
+                        <i class="fa-solid fa-clipboard-user"></i>
+                        <span class="btn-text">Evaluate</span>
+                        <i class="fa-solid fa-chevron-down text-[10px] chevron-icon transition-transform duration-200"></i>
+                    </button>
                 </div>
             </div>
 
-            <!-- Colleagues to Evaluate in this Unit -->
-            <div>
-                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
-                    Colleagues in Your Unit to Evaluate ({{ item.total_peers }})
-                </h3>
+            <!-- Colleagues Section (Hidden by default, shown upon clicking Evaluate) -->
+            <div id="peers-{{ item.evaluation.id }}" class="hidden pt-5 border-t border-slate-100 space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                        Colleagues in Your Unit to Evaluate ({{ item.total_peers }})
+                    </h3>
+                    <span class="text-xs text-slate-400">Click &ldquo;Evaluate&rdquo; next to a colleague to start</span>
+                </div>
 
                 {% if item.peers %}
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -97,7 +113,7 @@
                                     {{ p.peer.get_full_name|default:p.peer.username }}
                                 </h4>
                                 <p class="text-[11px] text-slate-500 truncate">
-                                    {{ p.peer.job_title|default:"Care Staff" }} &bull; @{{ p.peer.username }}
+                                    @{{ p.peer.username }}
                                 </p>
                             </div>
                         </div>
@@ -105,14 +121,9 @@
                         <!-- Action Button / Status -->
                         <div class="flex-shrink-0">
                             {% if p.has_evaluated %}
-                                <div class="flex items-center gap-2">
-                                    <span class="text-xs font-bold text-emerald-700 bg-emerald-100/80 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                                        <i class="fa-solid fa-check text-[10px]"></i> {{ p.submission.average_score }}/5
-                                    </span>
-                                    <a href="{% url 'evaluations:user_history_detail' p.submission.id %}" class="px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 transition" title="View Submitted Rating">
-                                        View
-                                    </a>
-                                </div>
+                                <span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1.5 rounded-lg flex items-center gap-1 border border-emerald-200/70">
+                                    <i class="fa-solid fa-check text-[10px]"></i> Completed
+                                </span>
                             {% else %}
                                 <a href="{% url 'evaluations:evaluation_rate' item.evaluation.id p.peer.id %}"
                                    class="px-3.5 py-1.5 rounded-xl bg-[#5D87FF] hover:bg-[#4570ea] text-white text-xs font-bold shadow-sm shadow-blue-500/20 transition flex items-center gap-1.5 active:scale-95">
@@ -132,14 +143,45 @@
             </div>
         </div>
         {% empty %}
-        <div class="bg-white rounded-3xl p-12 text-center border border-slate-100">
-            <div class="w-14 h-14 rounded-full bg-blue-50 text-[#5D87FF] flex items-center justify-center mx-auto mb-3 text-xl">
-                <i class="fa-solid fa-clipboard-check"></i>
+        <div class="bg-white rounded-3xl p-12 text-center border border-slate-100 shadow-sm">
+            <div class="w-14 h-14 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3 text-xl">
+                <i class="fa-solid fa-circle-check"></i>
             </div>
-            <h3 class="font-bold text-slate-800">No Active Peer Evaluations</h3>
-            <p class="text-xs text-slate-500 mt-1 max-w-sm mx-auto">There are currently no active evaluations tagged to your care unit.</p>
+            <h3 class="font-bold text-slate-800">All Caught Up!</h3>
+            <p class="text-xs text-slate-500 mt-1 max-w-sm mx-auto">You have completed all assigned peer evaluations. Completed evaluations can be reviewed in your Rating History.</p>
+            <div class="mt-4">
+                <a href="{% url 'evaluations:user_history' %}" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    <span>View Rating History</span>
+                </a>
+            </div>
         </div>
         {% endfor %}
     </div>
+</div>
+
+<script>
+function toggleColleagues(containerId, btn) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    const isHidden = el.classList.contains('hidden');
+    const chevron = btn.querySelector('.chevron-icon');
+    const textSpan = btn.querySelector('.btn-text');
+
+    if (isHidden) {
+        el.classList.remove('hidden');
+        if (chevron) chevron.style.transform = 'rotate(180deg)';
+        if (textSpan) textSpan.textContent = 'Hide Staff';
+        btn.classList.add('bg-slate-700', 'hover:bg-slate-800');
+        btn.classList.remove('bg-[#5D87FF]', 'hover:bg-[#4570ea]');
+    } else {
+        el.classList.add('hidden');
+        if (chevron) chevron.style.transform = 'rotate(0deg)';
+        if (textSpan) textSpan.textContent = 'Evaluate';
+        btn.classList.remove('bg-slate-700', 'hover:bg-slate-800');
+        btn.classList.add('bg-[#5D87FF]', 'hover:bg-[#4570ea]');
+    }
+}
+</script>
 </div>
 {% endblock %}

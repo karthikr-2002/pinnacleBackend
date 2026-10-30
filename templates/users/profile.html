@@ -1,0 +1,527 @@
+{% extends 'dashboard_base.html' %}
+{% load static %}
+
+{% block title %}My Profile - Pinnacle Care Homes{% endblock %}
+
+{% block page_content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">My Profile</h1>
+            <p class="text-sm text-slate-500 mt-1">Manage your account details, contact information, and security credentials.</p>
+        </div>
+    </div>
+
+    <!-- MAIN PROFILE CARD (Consolidated All-In-One Profile) -->
+    <div class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+
+        <!-- Top Banner & Quick Profile Bar -->
+        <div class="relative bg-gradient-to-r from-blue-600 via-[#5D87FF] to-indigo-600 px-6 sm:px-8 pt-8 pb-16 text-white">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+                <!-- Avatar & Core Identity -->
+                <div class="flex items-center gap-5">
+                    <div class="relative flex-shrink-0">
+                        {% if user_obj.photo %}
+                            <img src="{{ user_obj.photo.url }}" alt="{{ user_obj.display_name }}" class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border-4 border-white/90 shadow-md">
+                        {% else %}
+                            <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-white/20 backdrop-blur-md text-white flex items-center justify-center font-black text-3xl sm:text-4xl border-4 border-white/90 shadow-md">
+                                {{ user_obj.first_name|default:user_obj.username|slice:":1"|upper }}
+                            </div>
+                        {% endif %}
+                        <span class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-400 border-2 border-white shadow-sm" title="Active Account"></span>
+                    </div>
+
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-3 flex-wrap">
+                            <h2 class="text-2xl sm:text-3xl font-black text-white tracking-tight truncate">
+                                {{ user_obj.get_full_name|default:user_obj.username }}
+                            </h2>
+                            {% if user_obj.employee_id %}
+                            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-white/20 backdrop-blur-sm text-white border border-white/30 font-mono">
+                                {{ user_obj.employee_id }}
+                            </span>
+                            {% endif %}
+                        </div>
+                        <div class="flex items-center gap-3 text-xs text-blue-100 mt-1 flex-wrap">
+                            <span class="font-mono bg-white/10 px-2 py-0.5 rounded-lg">@{{ user_obj.username }}</span>
+                            <span>&bull;</span>
+                            <span class="flex items-center gap-1.5">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Active Account
+                            </span>
+                            <span>&bull;</span>
+                            <span class="flex items-center gap-1.5">
+                                <i class="fa-regular fa-calendar text-[11px]"></i>
+                                Joined {{ user_obj.date_joined|date:"M Y" }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Two Actions -->
+                <div class="flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+                    <!-- Action 1: Edit Profile -->
+                    <button type="button" onclick="openEditProfileModal()"
+                            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-800 text-xs font-bold shadow-md shadow-black/10 transition cursor-pointer active:scale-95">
+                        <i class="fa-solid fa-pen-to-square text-[#5D87FF]"></i>
+                        <span>Edit Profile</span>
+                    </button>
+
+                    <!-- Action 2: Change Password -->
+                    <button type="button" onclick="openChangePasswordModal()"
+                            class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/15 hover:bg-white/25 text-white border border-white/30 text-xs font-bold backdrop-blur-sm transition cursor-pointer active:scale-95">
+                        <i class="fa-solid fa-key text-amber-300"></i>
+                        <span>Change Password</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Body Section (All Employee Information) -->
+        <div class="p-6 sm:p-8 space-y-8 -mt-6 bg-white rounded-t-3xl relative z-10 border-t border-slate-100/60">
+
+            <!-- 1. Personal & Contact Details -->
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-id-card text-[#5D87FF]"></i>
+                        Personal & Contact Details
+                    </h3>
+                    <button type="button" onclick="openEditProfileModal()" class="text-xs font-bold text-[#5D87FF] hover:underline flex items-center gap-1 cursor-pointer">
+                        <i class="fa-solid fa-pen-to-square text-[10px]"></i> Edit Details
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Full Name -->
+                    <div class="p-4 rounded-2xl bg-slate-50/70 border border-slate-100">
+                        <span class="text-slate-400 block font-semibold mb-1 uppercase tracking-wider text-[10px]">Employee Name</span>
+                        <span class="text-sm font-bold text-slate-800">{{ user_obj.get_full_name|default:user_obj.username }}</span>
+                    </div>
+
+                    <!-- Email Address -->
+                    <div class="p-4 rounded-2xl bg-slate-50/70 border border-slate-100">
+                        <span class="text-slate-400 block font-semibold mb-1 uppercase tracking-wider text-[10px]">Email Address</span>
+                        <span class="text-sm font-bold text-slate-800 break-all">{{ user_obj.email|default:"Not provided" }}</span>
+                    </div>
+
+                    <!-- Contact Number -->
+                    <div class="p-4 rounded-2xl bg-slate-50/70 border border-slate-100">
+                        <span class="text-slate-400 block font-semibold mb-1 uppercase tracking-wider text-[10px]">Contact Number</span>
+                        <span class="text-sm font-bold text-slate-800">{{ user_obj.phone|default:"Not provided" }}</span>
+                    </div>
+                </div>
+
+                <!-- Profile Photo Status Box -->
+                <div class="p-4 rounded-2xl bg-slate-50/70 border border-slate-100 flex items-center justify-between gap-4">
+                    <div class="flex items-center gap-3">
+                        {% if user_obj.photo %}
+                            <img src="{{ user_obj.photo.url }}" class="w-12 h-12 rounded-xl object-cover border border-slate-200">
+                        {% else %}
+                            <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-base">
+                                {{ user_obj.first_name|default:user_obj.username|slice:":1"|upper }}
+                            </div>
+                        {% endif %}
+                        <div>
+                            <p class="text-xs font-bold text-slate-800">Profile Photo</p>
+                            <p class="text-[11px] text-slate-400">
+                                {% if user_obj.photo %}Custom profile photo active{% else %}Default avatar active{% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="openEditProfileModal()" class="text-xs font-bold text-[#5D87FF] hover:underline cursor-pointer">
+                        Update Photo
+                    </button>
+                </div>
+            </div>
+
+            <!-- 2. Account & Employment Details -->
+            <div class="space-y-4 pt-2 border-t border-slate-100">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-shield-halved text-emerald-600"></i>
+                    Account & Employment Information
+                </h3>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Username -->
+                    <div class="p-4 rounded-2xl bg-slate-50/70 border border-slate-100">
+                        <span class="text-slate-400 block font-semibold mb-1 uppercase tracking-wider text-[10px]">Username</span>
+                        <span class="text-sm font-bold text-slate-800 font-mono">@{{ user_obj.username }}</span>
+                    </div>
+
+                    <!-- Employee ID -->
+                    <div class="p-4 rounded-2xl bg-slate-50/70 border border-slate-100">
+                        <span class="text-slate-400 block font-semibold mb-1 uppercase tracking-wider text-[10px]">Employee ID</span>
+                        <span class="text-sm font-bold text-slate-800 font-mono">{{ user_obj.employee_id|default:"Not Assigned" }}</span>
+                    </div>
+
+                    <!-- Account Status -->
+                    <div class="p-4 rounded-2xl bg-slate-50/70 border border-slate-100">
+                        <span class="text-slate-400 block font-semibold mb-1 uppercase tracking-wider text-[10px]">Account Status</span>
+                        <span class="text-sm font-bold text-emerald-600 flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Active
+                        </span>
+                    </div>
+
+                    <!-- Member Since -->
+                    <div class="p-4 rounded-2xl bg-slate-50/70 border border-slate-100">
+                        <span class="text-slate-400 block font-semibold mb-1 uppercase tracking-wider text-[10px]">Member Since</span>
+                        <span class="text-sm font-bold text-slate-800">{{ user_obj.date_joined|date:"F Y" }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Assigned Care Units -->
+            <div class="space-y-4 pt-2 border-t border-slate-100">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                    <i class="fa-solid fa-hospital-user text-purple-600"></i>
+                    Assigned Care Units
+                </h3>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    {% for unit in user_units %}
+                    <div class="p-4 rounded-2xl bg-purple-50/40 border border-purple-100 flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-3.5 min-w-0">
+                            <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                                <i class="fa-solid fa-door-open"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <h4 class="text-xs font-bold text-slate-800 truncate">{{ unit.name }}</h4>
+                                <p class="text-[11px] text-slate-400 truncate">{{ unit.place|default:"Care Facility Wing" }}</p>
+                            </div>
+                        </div>
+                        <span class="text-[10px] font-bold px-2.5 py-1 rounded-full bg-white text-purple-700 border border-purple-200">
+                            Active
+                        </span>
+                    </div>
+                    {% empty %}
+                    <div class="sm:col-span-2 p-5 rounded-2xl bg-slate-50 border border-slate-100 text-center">
+                        <i class="fa-solid fa-door-closed text-slate-300 text-xl mb-1"></i>
+                        <p class="text-xs text-slate-400 italic">No care units currently assigned.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+<!-- ========================================================================= -->
+<!-- ACTION 1: EDIT PROFILE MODAL (Permitted Personal Details Only)             -->
+<!-- ========================================================================= -->
+<div id="edit-profile-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm {% if not show_edit_modal %}hidden{% endif %}">
+    <div class="bg-white rounded-3xl border border-slate-100 shadow-2xl max-w-lg w-full overflow-hidden transform transition-all animate-in fade-in zoom-in-95 duration-150">
+        <!-- Modal Header -->
+        <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-blue-100 text-[#5D87FF] flex items-center justify-center text-sm font-bold">
+                    <i class="fa-solid fa-user-pen"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-extrabold text-slate-800">Edit Profile</h3>
+                    <p class="text-xs text-slate-400">Update your permitted personal details</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeEditProfileModal()" class="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center transition cursor-pointer">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <!-- Edit Profile Form -->
+        <form method="POST" enctype="multipart/form-data" id="edit-profile-form" class="p-6 space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="edit_profile">
+
+            <!-- Read-only Summary Notice -->
+            <div class="p-3 rounded-xl bg-blue-50/70 border border-blue-100 text-xs text-blue-700 flex items-start gap-2.5">
+                <i class="fa-solid fa-circle-info text-blue-500 mt-0.5"></i>
+                <div>
+                    <span class="font-bold">Permitted updates:</span> You can update your email address, contact phone number, and profile photo. Name and unit assignments are managed by administration.
+                </div>
+            </div>
+
+            <!-- Email Address -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1.5">
+                    Email Address <span class="text-rose-500">*</span>
+                </label>
+                {{ profile_form.email }}
+                {% if profile_form.email.errors %}
+                <p class="text-xs text-rose-500 mt-1 font-semibold">{{ profile_form.email.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Contact Number -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1.5">
+                    Contact Number
+                </label>
+                {{ profile_form.phone }}
+                {% if profile_form.phone.errors %}
+                <p class="text-xs text-rose-500 mt-1 font-semibold">{{ profile_form.phone.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Profile Photo -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1.5">
+                    Profile Photo
+                </label>
+                <div class="flex items-center gap-3">
+                    {% if user_obj.photo %}
+                        <img src="{{ user_obj.photo.url }}" class="w-12 h-12 rounded-xl object-cover border border-slate-200 flex-shrink-0">
+                    {% else %}
+                        <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm flex-shrink-0">
+                            {{ user_obj.first_name|default:user_obj.username|slice:":1"|upper }}
+                        </div>
+                    {% endif %}
+                    <div class="flex-1 min-w-0">
+                        {{ profile_form.photo }}
+                    </div>
+                </div>
+                {% if profile_form.photo.errors %}
+                <p class="text-xs text-rose-500 mt-1 font-semibold">{{ profile_form.photo.errors.0 }}</p>
+                {% endif %}
+                <p class="text-[11px] text-slate-400 mt-1">Optional. Recommended JPG, PNG or WebP.</p>
+            </div>
+
+            <!-- Modal Footer Buttons -->
+            <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                <button type="button" onclick="closeEditProfileModal()"
+                        class="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer">
+                    Cancel
+                </button>
+                <button type="button" onclick="askEditProfileConfirm()"
+                        class="px-5 py-2.5 rounded-xl bg-[#5D87FF] hover:bg-[#4570ea] text-white text-xs font-bold shadow-md shadow-blue-500/20 transition flex items-center gap-2 cursor-pointer active:scale-95">
+                    <i class="fa-solid fa-check"></i>
+                    <span>Save Changes</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Profile Confirmation Dialog -->
+<div id="edit-profile-confirm-modal" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm hidden">
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-2xl max-w-sm w-full p-6 text-center space-y-4">
+        <div class="w-12 h-12 rounded-2xl bg-blue-100 text-[#5D87FF] flex items-center justify-center text-xl mx-auto">
+            <i class="fa-solid fa-user-check"></i>
+        </div>
+        <div>
+            <h4 class="text-base font-extrabold text-slate-800">Save Profile Changes?</h4>
+            <p class="text-xs text-slate-500 mt-1">Are you sure you want to update your personal details?</p>
+        </div>
+        <div class="flex items-center justify-center gap-3 pt-2">
+            <button type="button" onclick="closeEditProfileConfirm()"
+                    class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer">
+                Cancel
+            </button>
+            <button type="button" onclick="submitEditProfileForm()"
+                    class="px-5 py-2 rounded-xl bg-[#5D87FF] hover:bg-[#4570ea] text-white text-xs font-bold shadow-md shadow-blue-500/20 transition cursor-pointer">
+                Yes, Save Changes
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- ACTION 2: CHANGE PASSWORD MODAL (Employee Login Password)                 -->
+<!-- ========================================================================= -->
+<div id="change-password-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm {% if not show_password_modal %}hidden{% endif %}">
+    <div class="bg-white rounded-3xl border border-slate-100 shadow-2xl max-w-lg w-full overflow-hidden transform transition-all animate-in fade-in zoom-in-95 duration-150">
+        <!-- Modal Header -->
+        <div class="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center text-sm font-bold">
+                    <i class="fa-solid fa-key"></i>
+                </div>
+                <div>
+                    <h3 class="text-base font-extrabold text-slate-800">Change Password</h3>
+                    <p class="text-xs text-slate-400">Update your employee login password</p>
+                </div>
+            </div>
+            <button type="button" onclick="closeChangePasswordModal()" class="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center transition cursor-pointer">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <!-- Change Password Form -->
+        <form method="POST" id="change-password-form" class="p-6 space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="change_password">
+
+            {% if password_form.non_field_errors %}
+            <div class="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 font-semibold">
+                {{ password_form.non_field_errors.0 }}
+            </div>
+            {% endif %}
+
+            <!-- Current Password -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1.5">
+                    Current Password <span class="text-rose-500">*</span>
+                </label>
+                <div class="relative">
+                    {{ password_form.current_password }}
+                    <button type="button" onclick="togglePassVisibility('id_current_password', this)"
+                            class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs cursor-pointer">
+                        <i class="fa-regular fa-eye"></i>
+                    </button>
+                </div>
+                {% if password_form.current_password.errors %}
+                <p class="text-xs text-rose-500 mt-1 font-semibold">{{ password_form.current_password.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- New Password -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1.5">
+                    New Password <span class="text-rose-500">*</span>
+                </label>
+                <div class="relative">
+                    {{ password_form.new_password }}
+                    <button type="button" onclick="togglePassVisibility('id_new_password', this)"
+                            class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs cursor-pointer">
+                        <i class="fa-regular fa-eye"></i>
+                    </button>
+                </div>
+                {% if password_form.new_password.errors %}
+                <p class="text-xs text-rose-500 mt-1 font-semibold">{{ password_form.new_password.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Confirm New Password -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1.5">
+                    Confirm New Password <span class="text-rose-500">*</span>
+                </label>
+                <div class="relative">
+                    {{ password_form.confirm_password }}
+                    <button type="button" onclick="togglePassVisibility('id_confirm_password', this)"
+                            class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs cursor-pointer">
+                        <i class="fa-regular fa-eye"></i>
+                    </button>
+                </div>
+                {% if password_form.confirm_password.errors %}
+                <p class="text-xs text-rose-500 mt-1 font-semibold">{{ password_form.confirm_password.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Complexity Requirement Hint -->
+            <div class="p-3 rounded-xl bg-amber-50/70 border border-amber-200/60 text-xs text-amber-800 space-y-1">
+                <span class="font-bold flex items-center gap-1.5">
+                    <i class="fa-solid fa-shield-halved text-amber-600"></i> Password Requirements:
+                </span>
+                <p class="text-[11px] text-amber-700 pl-5">
+                    Must be at least 8 characters and include at least one letter, one number (0–9), and one special character (e.g. !@#$%^&*).
+                </p>
+            </div>
+
+            <!-- Modal Footer Buttons -->
+            <div class="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                <button type="button" onclick="closeChangePasswordModal()"
+                        class="px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer">
+                    Cancel
+                </button>
+                <button type="button" onclick="askChangePasswordConfirm()"
+                        class="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-md shadow-amber-500/20 transition flex items-center gap-2 cursor-pointer active:scale-95">
+                    <i class="fa-solid fa-key"></i>
+                    <span>Update Password</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Change Password Confirmation Dialog -->
+<div id="change-password-confirm-modal" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm hidden">
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-2xl max-w-sm w-full p-6 text-center space-y-4">
+        <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center text-xl mx-auto">
+            <i class="fa-solid fa-lock"></i>
+        </div>
+        <div>
+            <h4 class="text-base font-extrabold text-slate-800">Change Password?</h4>
+            <p class="text-xs text-slate-500 mt-1">Are you sure you want to update your login password?</p>
+        </div>
+        <div class="flex items-center justify-center gap-3 pt-2">
+            <button type="button" onclick="closeChangePasswordConfirm()"
+                    class="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 transition cursor-pointer">
+                Cancel
+            </button>
+            <button type="button" onclick="submitChangePasswordForm()"
+                    class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold shadow-md shadow-amber-500/20 transition cursor-pointer">
+                Yes, Change Password
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Action 1: Edit Profile Modal Controls
+    function openEditProfileModal() {
+        document.getElementById('edit-profile-modal').classList.remove('hidden');
+    }
+    function closeEditProfileModal() {
+        document.getElementById('edit-profile-modal').classList.add('hidden');
+    }
+    function askEditProfileConfirm() {
+        const form = document.getElementById('edit-profile-form');
+        if (!form.reportValidity()) {
+            return;
+        }
+        document.getElementById('edit-profile-confirm-modal').classList.remove('hidden');
+    }
+    function closeEditProfileConfirm() {
+        document.getElementById('edit-profile-confirm-modal').classList.add('hidden');
+    }
+    function submitEditProfileForm() {
+        document.getElementById('edit-profile-form').submit();
+    }
+
+    // Action 2: Change Password Modal Controls
+    function openChangePasswordModal() {
+        document.getElementById('change-password-modal').classList.remove('hidden');
+    }
+    function closeChangePasswordModal() {
+        document.getElementById('change-password-modal').classList.add('hidden');
+    }
+    function askChangePasswordConfirm() {
+        const form = document.getElementById('change-password-form');
+        if (!form.reportValidity()) {
+            return;
+        }
+        document.getElementById('change-password-confirm-modal').classList.remove('hidden');
+    }
+    function closeChangePasswordConfirm() {
+        document.getElementById('change-password-confirm-modal').classList.add('hidden');
+    }
+    function submitChangePasswordForm() {
+        document.getElementById('change-password-form').submit();
+    }
+
+    // Password visibility toggle helper
+    function togglePassVisibility(inputId, btn) {
+        const input = document.getElementById(inputId);
+        const icon = btn.querySelector('i');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            input.type = 'password';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
+        }
+    }
+
+    // Open modals if requested via URL hash or query params
+    if (window.location.hash === '#edit' || window.location.search.includes('edit=')) {
+        openEditProfileModal();
+    } else if (window.location.hash === '#password' || window.location.search.includes('password=')) {
+        openChangePasswordModal();
+    }
+</script>
+{% endblock %}
