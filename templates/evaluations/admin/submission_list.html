@@ -297,6 +297,9 @@ function openAdminEvalModal(modalId) {
     if (modal) {
         modal.classList.remove('hidden');
         document.body.classList.add('overflow-hidden');
+        if (window.history && window.history.replaceState) {
+            window.history.replaceState(null, '', '#' + modalId);
+        }
         const input = modal.querySelector('input');
         if (input) {
             input.value = '';
@@ -311,8 +314,29 @@ function closeAdminEvalModal(modalId) {
     if (modal) {
         modal.classList.add('hidden');
         document.body.classList.remove('overflow-hidden');
+        if (window.location.hash === '#' + modalId && window.history && window.history.replaceState) {
+            window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
     }
 }
+
+function checkInitialAdminModal() {
+    if (window.location.hash) {
+        const modalId = window.location.hash.substring(1);
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            openAdminEvalModal(modalId);
+        }
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkInitialAdminModal);
+} else {
+    checkInitialAdminModal();
+}
+
+window.addEventListener('hashchange', checkInitialAdminModal);
 
 function filterAdminModalUsers(inputElement, modalId) {
     const q = inputElement.value.toLowerCase().trim();

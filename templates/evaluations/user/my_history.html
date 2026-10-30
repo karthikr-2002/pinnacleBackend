@@ -37,10 +37,38 @@
         </div>
     </div>
 
+    <!-- Evaluation Search Bar -->
+    <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-4 sm:p-5 flex items-center justify-between gap-4">
+        <div class="relative flex-1">
+            <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+            <input type="text"
+                   id="history-eval-search"
+                   placeholder="Search evaluations by title, template, or care unit..."
+                   oninput="filterHistoryEvaluations(this.value)"
+                   class="w-full pl-11 pr-10 py-2.5 text-xs sm:text-sm rounded-2xl border border-slate-200 bg-slate-50/50 hover:bg-white focus:bg-white focus:ring-2 focus:ring-[#5D87FF]/20 focus:border-[#5D87FF] transition placeholder:text-slate-400">
+            <button type="button" id="clear-eval-search" onclick="clearHistorySearch()" class="hidden absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs p-1 cursor-pointer">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div class="hidden sm:flex items-center gap-2 text-xs text-slate-400 flex-shrink-0 font-medium">
+            <i class="fa-solid fa-clipboard-check text-[#5D87FF]"></i>
+            <span id="history-eval-count-text">Evaluation History</span>
+        </div>
+    </div>
+
     <!-- Unit-wise Cards List (Matching My Evaluations Design) -->
-    <div class="space-y-6">
+    <div class="space-y-6" id="history-units-container">
+        <!-- Empty State for Evaluation Search -->
+        <div id="no-history-eval-match" class="hidden bg-white rounded-3xl p-10 text-center border border-slate-100">
+            <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3 text-lg">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </div>
+            <h3 class="font-bold text-slate-700 text-sm">No evaluations found</h3>
+            <p class="text-xs text-slate-400 mt-1">Try adjusting your search terms or keywords.</p>
+        </div>
+
         {% for group in unit_groups %}
-        <div class="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 sm:p-7 space-y-6">
+        <div class="history-unit-block bg-white rounded-3xl border border-slate-100 shadow-sm p-6 sm:p-7 space-y-6">
             <!-- Unit Header Info -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-100">
                 <div>
@@ -75,7 +103,8 @@
             <!-- Evaluations in this Unit -->
             <div class="space-y-4">
                 {% for eval_group in group.evaluation_groups %}
-                <div class="rounded-2xl border border-slate-200/90 bg-slate-50/50 hover:bg-white hover:border-[#5D87FF]/40 hover:shadow-xs transition-all duration-200 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="history-eval-card rounded-2xl border border-slate-200/90 bg-slate-50/50 hover:bg-white hover:border-[#5D87FF]/40 hover:shadow-xs transition-all duration-200 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                     data-search-text="{{ eval_group.evaluation_title|lower }} {{ eval_group.evaluation.template.title|default:''|lower }} {{ group.unit_name|lower }} {{ group.unit_place|default:''|lower }}">
                     <!-- Evaluation Header Info -->
                     <div class="flex items-center gap-3 min-w-0">
                         <div class="w-10 h-10 rounded-xl bg-blue-100/70 text-blue-700 flex items-center justify-center text-sm flex-shrink-0">
@@ -226,13 +255,80 @@
     </div>
 </div>
 
-<!-- Modal Scripts -->
+<!-- Search & Modal Scripts -->
 <script>
+function filterHistoryEvaluations(query) {
+    const q = query.toLowerCase().trim();
+    const clearBtn = document.getElementById('clear-eval-search');
+    if (clearBtn) {
+        if (q) clearBtn.classList.remove('hidden');
+        else clearBtn.classList.add('hidden');
+    }
+
+    let totalVisible = 0;
+    const unitBlocks = document.querySelectorAll('.history-unit-block');
+
+    unitBlocks.forEach(unitBlock => {
+        const evalCards = unitBlock.querySelectorAll('.history-eval-card');
+        let unitVisibleEvals = 0;
+
+        evalCards.forEach(card => {
+            const searchText = card.getAttribute('data-search-text') || '';
+            if (!q || searchText.includes(q)) {
+                card.classList.remove('hidden');
+                unitVisibleEvals++;
+                totalVisible++;
+            } else {
+                card.classList.add('hidden');
+            }
+        });
+
+        // Hide unit block if all its evaluations are filtered out
+        if (unitVisibleEvals > 0) {
+            unitBlock.classList.remove('hidden');
+        } else {
+            unitBlock.classList.add('hidden');
+        }
+    });
+
+    // Handle no results message
+    const noResultsMsg = document.getElementById('no-history-eval-match');
+    if (noResultsMsg) {
+        if (totalVisible === 0 && q) {
+            noResultsMsg.classList.remove('hidden');
+        } else {
+            noResultsMsg.classList.add('hidden');
+        }
+    }
+
+    // Update count text badge
+    const countText = document.getElementById('history-eval-count-text');
+    if (countText) {
+        if (q) {
+            countText.textContent = totalVisible + ' evaluation' + (totalVisible === 1 ? '' : 's') + ' found';
+        } else {
+            countText.textContent = 'Evaluation History';
+        }
+    }
+}
+
+function clearHistorySearch() {
+    const input = document.getElementById('history-eval-search');
+    if (input) {
+        input.value = '';
+        filterHistoryEvaluations('');
+        input.focus();
+    }
+}
+
 function openEvalModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.classList.remove('hidden');
         document.body.classList.add('overflow-hidden');
+        if (window.history && window.history.replaceState) {
+            window.history.replaceState(null, '', '#' + modalId);
+        }
     }
 }
 
@@ -241,8 +337,29 @@ function closeEvalModal(modalId) {
     if (modal) {
         modal.classList.add('hidden');
         document.body.classList.remove('overflow-hidden');
+        if (window.location.hash === '#' + modalId && window.history && window.history.replaceState) {
+            window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
     }
 }
+
+function checkInitialModal() {
+    if (window.location.hash) {
+        const modalId = window.location.hash.substring(1);
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            openEvalModal(modalId);
+        }
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', checkInitialModal);
+} else {
+    checkInitialModal();
+}
+
+window.addEventListener('hashchange', checkInitialModal);
 
 function filterModalUsers(input, modalId) {
     const modal = document.getElementById(modalId);

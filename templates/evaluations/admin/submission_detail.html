@@ -6,10 +6,10 @@
 <div class="max-w-3xl mx-auto space-y-6">
     <!-- Breadcrumb & Header -->
     <div>
-        <button type="button" onclick="window.history.back()" class="px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-xs font-semibold shadow-2xs transition inline-flex items-center gap-1.5 mb-3">
+        <a href="{% url 'evaluations:submission_list' %}#modal-eval-{{ submission.unit.id|default:0 }}-{{ submission.evaluation.id }}" class="px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-800 text-xs font-semibold shadow-2xs transition inline-flex items-center gap-1.5 mb-3 cursor-pointer">
             <i class="fa-solid fa-arrow-left text-[11px]"></i>
             <span>Back</span>
-        </button>
+        </a>
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
                 <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">Staff Evaluation Ratings</h1>
