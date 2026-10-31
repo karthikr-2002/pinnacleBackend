@@ -256,8 +256,9 @@ class EmployeeCreateForm(forms.Form):
             avatar_url='/static/images/default-avatar.png',
         )
         user.set_password(self.cleaned_data['password'])
+        clear_photo = self.data.get('clear_photo') == '1'
         photo = self.cleaned_data.get('photo')
-        if photo:
+        if photo and not clear_photo:
             user.photo = photo
         user.save()
 
@@ -397,8 +398,17 @@ class EmployeeEditForm(forms.Form):
         user.last_name = last_name
         user.email = self.cleaned_data['email']
         user.phone = self.cleaned_data['phone']
+        clear_photo = self.data.get('clear_photo') == '1'
         photo = self.cleaned_data.get('photo')
-        if photo:
+        if clear_photo:
+            if user.photo:
+                try:
+                    user.photo.delete(save=False)
+                except Exception:
+                    pass
+            user.photo = None
+            user.avatar_url = '/static/images/default-avatar.png'
+        elif photo:
             user.photo = photo
         user.save()
 
@@ -478,6 +488,139 @@ class UserProfileForm(forms.ModelForm):
         if qs.exists():
             raise forms.ValidationError('An account with this email already exists.')
         return email
+
+
+class AdminProfileEditForm(forms.Form):
+    full_name = forms.CharField(
+        label='Administrator Name',
+        max_length=150,
+        widget=forms.TextInput(attrs={
+            'class': INPUT_CLASS,
+            'placeholder': 'e.g. Administrator',
+            'autocomplete': 'name',
+        }),
+    )
+    username = forms.CharField(
+        label='Username',
+        max_length=150,
+        widget=forms.TextInput(attrs={
+            'class': INPUT_CLASS,
+            'placeholder': 'e.g. admin',
+            'autocomplete': 'username',
+        }),
+    )
+    employee_id = forms.CharField(
+        label='Employee ID',
+        max_length=50,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': INPUT_CLASS,
+            'placeholder': 'e.g. ADM-001 (Optional)',
+            'autocomplete': 'off',
+        }),
+    )
+    email = forms.EmailField(
+        label='Email Address',
+        widget=forms.EmailInput(attrs={
+            'class': INPUT_CLASS,
+            'placeholder': 'admin@pinnaclecare.com',
+            'autocomplete': 'email',
+        }),
+    )
+    phone = forms.CharField(
+        label='Contact Number',
+        max_length=20,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': INPUT_CLASS,
+            'placeholder': 'e.g. +44 7123 456789',
+            'autocomplete': 'tel',
+        }),
+    )
+    photo = forms.ImageField(
+        label='Profile Photo',
+        required=False,
+        widget=forms.ClearableFileInput(attrs={
+            'class': 'block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-[#5D87FF] hover:file:bg-blue-100 transition',
+            'accept': 'image/*',
+            'id': 'id_photo_admin',
+        }),
+    )
+
+    def __init__(self, *args, instance=None, **kwargs):
+        self.instance = instance
+        super().__init__(*args, **kwargs)
+        if instance and not self.is_bound:
+            self.fields['full_name'].initial = instance.get_full_name() or instance.username
+            self.fields['username'].initial = instance.username
+            self.fields['employee_id'].initial = instance.employee_id or ''
+            self.fields['email'].initial = instance.email
+            self.fields['phone'].initial = instance.phone or ''
+
+    def clean_employee_id(self):
+        employee_id = self.cleaned_data.get('employee_id', '').strip()
+        if not employee_id:
+            return None
+        qs = User.objects.filter(employee_id__iexact=employee_id)
+        if self.instance and self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError('An account with this Employee ID already exists.')
+        return employee_id
+
+    def clean_username(self):
+        username = self.cleaned_data.get('username', '').strip()
+        if not username:
+            raise forms.ValidationError('Username is required.')
+        qs = User.objects.filter(username__iexact=username)
+        if self.instance and self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError('This username is already taken.')
+        return username
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email', '').strip().lower()
+        if not email:
+            raise forms.ValidationError('Email address is required.')
+        qs = User.objects.filter(email__iexact=email)
+        if self.instance and self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError('An account with this email already exists.')
+        return email
+
+    def clean_full_name(self):
+        name = ' '.join(self.cleaned_data.get('full_name', '').split())
+        if len(name) < 2:
+            raise forms.ValidationError('Please enter a valid administrator name.')
+        return name
+
+    def save(self):
+        user = self.instance
+        first_name, last_name = split_full_name(self.cleaned_data['full_name'])
+        user.first_name = first_name
+        user.last_name = last_name
+        user.username = self.cleaned_data['username']
+        user.employee_id = self.cleaned_data['employee_id']
+        user.email = self.cleaned_data['email']
+        user.phone = self.cleaned_data.get('phone', '')
+
+        clear_photo = self.data.get('clear_photo') == '1'
+        photo = self.cleaned_data.get('photo')
+        if clear_photo:
+            if user.photo:
+                try:
+                    user.photo.delete(save=False)
+                except Exception:
+                    pass
+            user.photo = None
+            user.avatar_url = '/static/images/default-avatar.png'
+        elif photo:
+            user.photo = photo
+
+        user.save()
+        return user
 
 
 class UserSelfPasswordChangeForm(forms.Form):

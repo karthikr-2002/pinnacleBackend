@@ -5,7 +5,7 @@ from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q, Value
 from django.db.models.functions import Concat
-from .forms import UserLoginForm, UserRegisterForm, EmployeeCreateForm, EmployeeEditForm, EmployeeResetPasswordForm, UserProfileForm, UserSelfPasswordChangeForm
+from .forms import UserLoginForm, UserRegisterForm, EmployeeCreateForm, EmployeeEditForm, EmployeeResetPasswordForm, UserProfileForm, UserSelfPasswordChangeForm, AdminProfileEditForm
 from .models import User
 
 
@@ -201,14 +201,23 @@ def profile_view(request):
     user_units = user.assigned_units.all()
     show_edit_modal = 'edit' in request.GET
     show_password_modal = 'password' in request.GET
+    user_is_admin = is_admin(user)
 
-    profile_form = UserProfileForm(instance=user)
+    if user_is_admin:
+        profile_form = AdminProfileEditForm(instance=user)
+    else:
+        profile_form = UserProfileForm(instance=user)
+
     password_form = UserSelfPasswordChangeForm(user)
 
     if request.method == 'POST':
         action = request.POST.get('action')
         if action == 'edit_profile':
-            profile_form = UserProfileForm(request.POST, request.FILES, instance=user)
+            if user_is_admin:
+                profile_form = AdminProfileEditForm(request.POST, request.FILES, instance=user)
+            else:
+                profile_form = UserProfileForm(request.POST, request.FILES, instance=user)
+
             if profile_form.is_valid():
                 profile_form.save()
                 messages.success(request, "Your profile details have been updated successfully.")
@@ -232,5 +241,6 @@ def profile_view(request):
         'user_units': user_units,
         'show_edit_modal': show_edit_modal,
         'show_password_modal': show_password_modal,
+        'is_admin_user': user_is_admin,
         'active_menu': 'profile',
     })

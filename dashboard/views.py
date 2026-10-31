@@ -17,7 +17,7 @@ def dashboard_view(request):
         total_evaluations = Evaluation.objects.count()
         total_submissions = EvaluationSubmission.objects.count()
         total_units = Unit.objects.count()
-        total_staff = User.objects.count()
+        total_staff = User.objects.exclude(role='admin').exclude(is_superuser=True).count()
 
         # Dynamic Status breakdown
         evaluations_all = list(Evaluation.objects.all())

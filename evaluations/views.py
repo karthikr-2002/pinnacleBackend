@@ -24,12 +24,22 @@ def evaluation_list(request):
     if not is_admin(request.user):
         return redirect('evaluations:user_evaluations')
 
-    evaluations = Evaluation.objects.all().select_related('template', 'created_by').prefetch_related('units__users', 'submissions')
+    search_query = request.GET.get('q', '').strip()
+
+    evaluations = Evaluation.objects.all().select_related('template', 'created_by').prefetch_related('units__users', 'submissions').order_by('-start_date', '-id')
     for ev in evaluations:
         ev.sync_status()
 
+    if search_query:
+        evaluations = evaluations.filter(
+            Q(title__icontains=search_query) |
+            Q(template__title__icontains=search_query) |
+            Q(units__name__icontains=search_query)
+        ).distinct()
+
     return render(request, 'evaluations/admin/evaluation_list.html', {
         'evaluations': evaluations,
+        'search_query': search_query,
         'active_menu': 'evaluations',
     })
 

@@ -20,8 +20,28 @@
 
     <!-- Evaluations Table / Cards -->
     <div class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-            <h2 class="text-sm font-bold text-slate-700">All Evaluations ({{ evaluations.count }})</h2>
+        <div class="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <h2 class="text-sm font-bold text-slate-700">All Evaluations ({{ evaluations|length }})</h2>
+            <form method="GET" action="{% url 'evaluations:evaluation_list' %}" class="flex items-center gap-2 w-full sm:w-auto">
+                <div class="relative flex-1 sm:w-72">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input type="text"
+                           id="eval-search-input"
+                           name="q"
+                           value="{{ search_query }}"
+                           placeholder="Search evaluation by name..."
+                           oninput="filterEvaluationsClient(this.value)"
+                           class="w-full pl-8 pr-8 py-2 text-xs rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-[#5D87FF]/20 focus:border-[#5D87FF] transition placeholder:text-slate-400">
+                    {% if search_query %}
+                    <a href="{% url 'evaluations:evaluation_list' %}" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" title="Clear search">
+                        <i class="fa-solid fa-xmark text-xs"></i>
+                    </a>
+                    {% endif %}
+                </div>
+                <button type="submit" class="px-3.5 py-2 rounded-xl bg-slate-800 text-white text-xs font-semibold hover:bg-slate-700 transition">
+                    Search
+                </button>
+            </form>
         </div>
 
         {% if evaluations %}
@@ -35,12 +55,12 @@
                         <th class="py-3.5 px-4">Submissions</th>
                         <th class="py-3.5 px-4">Status</th>
                         <th class="py-3.5 px-6 text-right whitespace-nowrap">Actions</th>
-
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100 text-sm">
+                <tbody class="divide-y divide-slate-100 text-sm" id="evaluations-table-body">
                     {% for eval in evaluations %}
-                    <tr class="hover:bg-slate-50/50 transition">
+                    <tr class="evaluation-row hover:bg-slate-50/50 transition"
+                        data-search="{{ eval.title|lower }} {{ eval.template.title|lower }} {% for unit in eval.units.all %}{{ unit.name|lower }} {% endfor %}">
                         <td class="py-4 px-6">
                             <a href="{% url 'evaluations:evaluation_detail' eval.id %}" class="font-bold text-slate-800 hover:text-[#5D87FF] transition">
                                 {{ eval.title }}
@@ -109,11 +129,35 @@
                                 <i class="fa-solid fa-arrow-right text-[10px] text-slate-400 group-hover:text-[#5D87FF] transition-transform group-hover:translate-x-0.5"></i>
                             </a>
                         </td>
-
                     </tr>
                     {% endfor %}
+
+                    <!-- Client-side No Results Row -->
+                    <tr id="no-client-eval-match" class="hidden">
+                        <td colspan="6" class="p-12 text-center">
+                            <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3 text-lg">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                            </div>
+                            <h3 class="text-sm font-bold text-slate-700">No evaluations match your search</h3>
+                            <p class="text-xs text-slate-400 mt-1">Try adjusting your keywords.</p>
+                            <button type="button" onclick="clearEvaluationSearch()" class="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition">
+                                <i class="fa-solid fa-xmark"></i> Clear Input
+                            </button>
+                        </td>
+                    </tr>
                 </tbody>
             </table>
+        </div>
+        {% elif search_query %}
+        <div class="p-12 text-center">
+            <div class="w-14 h-14 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3 text-xl">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </div>
+            <h3 class="text-sm font-bold text-slate-700">No evaluations found</h3>
+            <p class="text-xs text-slate-400 mt-1">No evaluations match "<strong class="text-slate-600">{{ search_query }}</strong>". Try different keywords.</p>
+            <a href="{% url 'evaluations:evaluation_list' %}" class="mt-4 inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition">
+                <i class="fa-solid fa-xmark"></i> Clear Search
+            </a>
         </div>
         {% else %}
         <div class="p-12 text-center">
@@ -129,4 +173,39 @@
         {% endif %}
     </div>
 </div>
+
+<script>
+function filterEvaluationsClient(q) {
+    const query = q.trim().toLowerCase();
+    const rows = document.querySelectorAll('.evaluation-row');
+    let visibleCount = 0;
+    rows.forEach(row => {
+        const text = (row.getAttribute('data-search') || '').toLowerCase();
+        if (!query || text.includes(query)) {
+            row.classList.remove('hidden');
+            visibleCount++;
+        } else {
+            row.classList.add('hidden');
+        }
+    });
+
+    const noMatchRow = document.getElementById('no-client-eval-match');
+    if (noMatchRow) {
+        if (visibleCount === 0 && rows.length > 0) {
+            noMatchRow.classList.remove('hidden');
+        } else {
+            noMatchRow.classList.add('hidden');
+        }
+    }
+}
+
+function clearEvaluationSearch() {
+    const input = document.getElementById('eval-search-input');
+    if (input) {
+        input.value = '';
+        filterEvaluationsClient('');
+        input.focus();
+    }
+}
+</script>
 {% endblock %}
