@@ -26,9 +26,7 @@
                         {% if user_obj.photo %}
                             <img src="{{ user_obj.photo.url }}" alt="{{ user_obj.display_name }}" class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border-4 border-white/90 shadow-md">
                         {% else %}
-                            <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-white/20 backdrop-blur-md text-white flex items-center justify-center font-black text-3xl sm:text-4xl border-4 border-white/90 shadow-md">
-                                {{ user_obj.first_name|default:user_obj.username|slice:":1"|upper }}
-                            </div>
+                            <img src="{% static 'images/default-avatar.png' %}" alt="{{ user_obj.display_name }}" class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border-4 border-white/90 shadow-md bg-white p-1">
                         {% endif %}
                         <span class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-400 border-2 border-white shadow-sm" title="Active Account"></span>
                     </div>
@@ -119,9 +117,7 @@
                         {% if user_obj.photo %}
                             <img src="{{ user_obj.photo.url }}" class="w-12 h-12 rounded-xl object-cover border border-slate-200">
                         {% else %}
-                            <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-base">
-                                {{ user_obj.first_name|default:user_obj.username|slice:":1"|upper }}
-                            </div>
+                            <img src="{% static 'images/default-avatar.png' %}" class="w-12 h-12 rounded-xl object-cover border border-slate-200 bg-white p-0.5">
                         {% endif %}
                         <div>
                             <p class="text-xs font-bold text-slate-800">Profile Photo</p>
@@ -274,9 +270,7 @@
                     {% if user_obj.photo %}
                         <img src="{{ user_obj.photo.url }}" class="w-12 h-12 rounded-xl object-cover border border-slate-200 flex-shrink-0">
                     {% else %}
-                        <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm flex-shrink-0">
-                            {{ user_obj.first_name|default:user_obj.username|slice:":1"|upper }}
-                        </div>
+                        <img src="{% static 'images/default-avatar.png' %}" class="w-12 h-12 rounded-xl object-cover border border-slate-200 flex-shrink-0 bg-white p-0.5">
                     {% endif %}
                     <div class="flex-1 min-w-0">
                         {{ profile_form.photo }}

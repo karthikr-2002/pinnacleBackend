@@ -23,7 +23,7 @@ class User(AbstractUser):
     avatar_url = models.CharField(
         max_length=500,
         blank=True,
-        default='https://api.dicebear.com/7.x/bottts/svg?seed=John'
+        default='/static/images/default-avatar.png'
     )
     job_title = models.CharField(max_length=100, blank=True, default='Administrator')
 
@@ -40,8 +40,10 @@ class User(AbstractUser):
     @property
     def photo_url(self):
         if self.photo:
-            return self.photo.url
-        if self.avatar_url:
+            try:
+                return self.photo.url
+            except Exception:
+                pass
+        if self.avatar_url and not ('dicebear.com' in self.avatar_url or 'bottts' in self.avatar_url):
             return self.avatar_url
-        seed = self.employee_id or self.username or 'staff'
-        return f'https://api.dicebear.com/7.x/bottts/svg?seed={seed}'
+        return '/static/images/default-avatar.png'

@@ -22,9 +22,8 @@
 
     <!-- Colleague Card Banner -->
     <div class="bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-blue-100/40 rounded-3xl p-6 border border-blue-100 shadow-sm flex items-center gap-4">
-        <div class="w-14 h-14 rounded-2xl bg-[#5D87FF] text-white flex items-center justify-center font-bold text-xl shadow-md shadow-blue-500/25 flex-shrink-0">
-            {{ evaluatee.first_name|default:evaluatee.username|slice:":1"|upper }}
-        </div>
+        <img src="{{ evaluatee.photo_url }}" alt="{{ evaluatee.display_name }}"
+             class="w-14 h-14 rounded-2xl object-cover border border-slate-200 bg-white p-1 shadow-md shadow-blue-500/10 flex-shrink-0">
         <div class="min-w-0 flex-1">
             <span class="text-[11px] font-bold uppercase tracking-wider text-blue-600 block mb-0.5">You are evaluating peer</span>
             <h2 class="text-lg font-black text-slate-800 truncate">{{ evaluatee.get_full_name|default:evaluatee.username }}</h2>

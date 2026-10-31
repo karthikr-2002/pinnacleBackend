@@ -1,4 +1,5 @@
 {% extends 'dashboard_base.html' %}
+{% load static %}
 
 {% block title %}{{ title }} - Pinnacle Care Homes{% endblock %}
 
@@ -69,7 +70,7 @@
             <div>
                 <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Photo</label>
                 <div class="flex items-center gap-4">
-                    <img id="photo-preview" src="{% if employee %}{{ employee.photo_url }}{% else %}https://api.dicebear.com/7.x/bottts/svg?seed=NewStaff{% endif %}" alt="Preview" class="w-16 h-16 rounded-2xl object-cover border border-slate-200 bg-slate-50">
+                    <img id="photo-preview" src="{% if employee %}{{ employee.photo_url }}{% else %}{% static 'images/default-avatar.png' %}{% endif %}" alt="Preview" class="w-16 h-16 rounded-2xl object-cover border border-slate-200 bg-slate-50">
                     <div class="flex-1 min-w-0">
                         {{ form.photo }}
                         <p class="text-[11px] text-slate-400 mt-1">Optional. JPG, PNG, or WebP.</p>

@@ -179,10 +179,10 @@
                 <!-- User Profile Dropdown -->
                 <div class="relative ml-1">
                     <button onclick="toggleUserDropdown()" id="user-menu-button" class="flex items-center gap-2 focus:outline-none ring-2 ring-transparent hover:ring-[#5D87FF]/40 rounded-full transition p-0.5">
-                        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80"
+                        <img src="{{ request.user.photo_url }}"
                              alt="{{ request.user.username }}"
-                             class="w-9 h-9 rounded-full object-cover border border-slate-200 shadow-sm"
-                             onerror="this.src='https://api.dicebear.com/7.x/bottts/svg?seed={{ request.user.username }}'">
+                             class="w-9 h-9 rounded-full object-cover border border-slate-200 shadow-sm bg-white"
+                             onerror="this.src='{% static 'images/default-avatar.png' %}'">
                     </button>
 
                     <!-- Dropdown Menu -->

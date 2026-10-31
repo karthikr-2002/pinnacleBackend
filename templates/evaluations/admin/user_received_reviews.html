@@ -12,9 +12,8 @@
                 <span>Back</span>
             </button>
             <div class="flex items-center gap-3">
-                <div class="w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-lg bg-blue-100 text-blue-700 border border-blue-200">
-                    {{ evaluatee.first_name|default:evaluatee.username|slice:":1"|upper }}
-                </div>
+                <img src="{{ evaluatee.photo_url }}" alt="{{ evaluatee.display_name }}"
+                     class="w-12 h-12 rounded-2xl object-cover border border-slate-200 bg-white p-1 flex-shrink-0">
                 <div>
                     <div class="flex items-center gap-2 flex-wrap">
                         <h1 class="text-2xl font-black text-slate-800 tracking-tight">

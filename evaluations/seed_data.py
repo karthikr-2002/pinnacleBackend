@@ -25,19 +25,19 @@ def run_seed():
     # 1. Ensure / Create Staff Users
     staff_data = [
         # Sunrise Wing Staff
-        ('john', 'John', 'Doe', 'manager', 'Senior Unit Manager', 'https://api.dicebear.com/7.x/bottts/svg?seed=John'),
-        ('sarah', 'Sarah', 'Jenkins', 'user', 'Senior Registered Nurse', 'https://api.dicebear.com/7.x/bottts/svg?seed=Sarah'),
-        ('alex', 'Alex', 'Smith', 'user', 'Attending Physician', 'https://api.dicebear.com/7.x/bottts/svg?seed=Alex'),
-        ('maria', 'Maria', 'Garcia', 'user', 'Lead Care Assistant', 'https://api.dicebear.com/7.x/bottts/svg?seed=Maria'),
-        ('david', 'David', 'Chen', 'user', 'Clinical Nurse Specialist', 'https://api.dicebear.com/7.x/bottts/svg?seed=David'),
+        ('john', 'John', 'Doe', 'manager', 'Senior Unit Manager', '/static/images/default-avatar.png'),
+        ('sarah', 'Sarah', 'Jenkins', 'user', 'Senior Registered Nurse', '/static/images/default-avatar.png'),
+        ('alex', 'Alex', 'Smith', 'user', 'Attending Physician', '/static/images/default-avatar.png'),
+        ('maria', 'Maria', 'Garcia', 'user', 'Lead Care Assistant', '/static/images/default-avatar.png'),
+        ('david', 'David', 'Chen', 'user', 'Clinical Nurse Specialist', '/static/images/default-avatar.png'),
         # Meadow Haven Staff
-        ('emma', 'Emma', 'Watson', 'user', 'Senior Care Assistant', 'https://api.dicebear.com/7.x/bottts/svg?seed=Emma'),
-        ('lucas', 'Lucas', 'Bennett', 'user', 'Registered Care Nurse', 'https://api.dicebear.com/7.x/bottts/svg?seed=Lucas'),
-        ('clara', 'Clara', 'Oswald', 'user', 'Occupational Therapist', 'https://api.dicebear.com/7.x/bottts/svg?seed=Clara'),
-        ('samuel', 'Samuel', 'Taylor', 'user', 'Night Care Lead', 'https://api.dicebear.com/7.x/bottts/svg?seed=Samuel'),
-        ('olivia', 'Olivia', 'Martinez', 'user', 'Palliative Care Specialist', 'https://api.dicebear.com/7.x/bottts/svg?seed=Olivia'),
+        ('emma', 'Emma', 'Watson', 'user', 'Senior Care Assistant', '/static/images/default-avatar.png'),
+        ('lucas', 'Lucas', 'Bennett', 'user', 'Registered Care Nurse', '/static/images/default-avatar.png'),
+        ('clara', 'Clara', 'Oswald', 'user', 'Occupational Therapist', '/static/images/default-avatar.png'),
+        ('samuel', 'Samuel', 'Taylor', 'user', 'Night Care Lead', '/static/images/default-avatar.png'),
+        ('olivia', 'Olivia', 'Martinez', 'user', 'Palliative Care Specialist', '/static/images/default-avatar.png'),
         # Additional specialist
-        ('liam', 'Liam', 'Wilson', 'user', 'Physiotherapy Coordinator', 'https://api.dicebear.com/7.x/bottts/svg?seed=Liam'),
+        ('liam', 'Liam', 'Wilson', 'user', 'Physiotherapy Coordinator', '/static/images/default-avatar.png'),
     ]
 
     users_map = {}

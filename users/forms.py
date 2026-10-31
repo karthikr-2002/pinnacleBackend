@@ -253,7 +253,7 @@ class EmployeeCreateForm(forms.Form):
             phone=self.cleaned_data['phone'],
             role='user',
             job_title='Care Staff',
-            avatar_url=f'https://api.dicebear.com/7.x/bottts/svg?seed={username}',
+            avatar_url='/static/images/default-avatar.png',
         )
         user.set_password(self.cleaned_data['password'])
         photo = self.cleaned_data.get('photo')

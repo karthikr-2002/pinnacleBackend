@@ -186,9 +186,8 @@
                                 <div class="modal-user-card p-3.5 rounded-xl border border-slate-200/80 bg-white hover:border-[#5D87FF]/40 hover:shadow-sm transition-all duration-200 flex items-center justify-between gap-3"
                                      data-search-text="{{ sub.evaluatee.get_full_name|lower }} {{ sub.evaluatee.username|lower }}">
                                     <div class="flex items-center gap-3 min-w-0">
-                                        <div class="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs flex-shrink-0 bg-blue-100 text-blue-700 border border-blue-200">
-                                            {{ sub.evaluatee.first_name|default:sub.evaluatee.username|slice:":1"|upper }}
-                                        </div>
+                                        <img src="{{ sub.evaluatee.photo_url }}" alt="{{ sub.evaluatee.display_name }}"
+                                             class="w-9 h-9 rounded-xl object-cover border border-slate-200 bg-white p-0.5 flex-shrink-0">
                                         <div class="min-w-0">
                                             <div class="flex items-center gap-1.5 flex-wrap">
                                                 <h4 class="text-xs sm:text-sm font-bold text-slate-800 truncate">
