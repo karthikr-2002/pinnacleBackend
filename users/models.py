@@ -38,6 +38,10 @@ class User(AbstractUser):
         return self.username
 
     @property
+    def status_label(self):
+        return 'Active' if self.is_active else 'Inactive'
+
+    @property
     def photo_url(self):
         if self.photo:
             try:

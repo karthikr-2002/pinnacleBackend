@@ -218,6 +218,37 @@
                     </tr>
                     {% endfor %}
                 </tbody>
+
+                <!-- Summary Row (Unit Averages) -->
+                {% if rows %}
+                <tfoot class="border-t-2 border-slate-300 bg-slate-100/90 text-xs font-black text-slate-800">
+                    <tr>
+                        <td class="p-3 pl-5 sticky left-0 bg-slate-100/95 z-10 border-r border-slate-200 uppercase tracking-wider text-[11px]">
+                            Average / Overall
+                        </td>
+                        {% for col in col_averages %}
+                        <td class="p-2.5 text-center border-l border-slate-200
+                            {% if col.avg_score is not None and col.avg_score >= 4.0 %}text-emerald-800 bg-emerald-50/50
+                            {% elif col.avg_score is not None and col.avg_score >= 3.5 %}text-amber-900 bg-amber-50/50
+                            {% elif col.avg_score is not None and col.avg_score >= 3.0 %}text-amber-950 bg-orange-50/50
+                            {% elif col.avg_score is not None %}text-rose-950 bg-rose-50/50
+                            {% else %}text-slate-400{% endif %}">
+                            {% if col.avg_score is not None %}
+                                {{ col.avg_score|floatformat:2 }}
+                            {% else %}
+                                &mdash;
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                        <td class="p-2.5 text-center border-l border-slate-300 bg-slate-200/90 text-slate-900 font-black">
+                            {{ unit_total|floatformat:2 }}
+                        </td>
+                        <td class="p-2.5 text-center border-l border-slate-200 pr-5 text-[10px] uppercase text-slate-400 font-bold">
+                            Unit Total
+                        </td>
+                    </tr>
+                </tfoot>
+                {% endif %}
             </table>
         </div>
     </div>
@@ -245,24 +276,27 @@ function downloadEvaluationExcel() {
     {% endfor %}
     headers.push("TOTAL");
 
+    const rowCount = {{ rows|length }};
+
     if (typeof XLSX !== 'undefined') {
         // Row 1: Big Title with Evaluation Name and Unit Name
         const titleText = `${evalTitle.toUpperCase()} — ${unitName.toUpperCase()}`;
-        const subTitleText = `Template: ${templateTitle} | Care Unit: ${unitName}`;
+        const subTitleText = `Template: ${templateTitle}  |  Care Unit: ${unitName}  |  Total Staff: ${rowCount}`;
 
         const data = [
             [titleText],
             [subTitleText],
-            [], // spacer row
             headers,
         ];
+
+        const staffNames = [];
 
         // Employee rows: Staff Name (bold) | Question Scores (regular / not bold) | Total (bold)
         {% for row in rows %}
         {
-            const rowData = [
-                "{{ row.employee.get_full_name|default:row.employee.username|escapejs }}"
-            ];
+            const empName = "{{ row.employee.get_full_name|default:row.employee.username|escapejs }}";
+            staffNames.push(empName);
+            const rowData = [empName];
             {% for qs in row.question_scores %}
                 {% if qs.score is not None %}
                 rowData.push(parseFloat("{{ qs.score|floatformat:2 }}"));
@@ -275,115 +309,171 @@ function downloadEvaluationExcel() {
         }
         {% endfor %}
 
-        const rowCount = {{ rows|length }};
+        // Summary row: AVERAGE / OVERALL
+        const summaryRow = ["AVERAGE / OVERALL"];
+        {% for col in col_averages %}
+            {% if col.avg_score is not None %}
+            summaryRow.push(parseFloat("{{ col.avg_score|floatformat:2 }}"));
+            {% else %}
+            summaryRow.push(null);
+            {% endif %}
+        {% endfor %}
+        summaryRow.push(parseFloat("{{ unit_total|floatformat:2 }}"));
+        data.push(summaryRow);
+
         const ws = XLSX.utils.aoa_to_sheet(data);
 
-        // 1. Merge Title and Subtitle across all columns
+        // 1. Merge Title and Subtitle across all columns (A1:LastCol1, A2:LastCol2)
+        const lastColIdx = headers.length - 1;
         ws['!merges'] = [
-            { s: { r: 0, c: 0 }, e: { r: 0, c: headers.length - 1 } },
-            { s: { r: 1, c: 0 }, e: { r: 0, c: headers.length - 1 } }
+            { s: { r: 0, c: 0 }, e: { r: 0, c: lastColIdx } },
+            { s: { r: 1, c: 0 }, e: { r: 1, c: lastColIdx } }
         ];
 
-        // 2. Set Row Heights (big title, comfortable headers and rows)
-        const rowHeights = [{ hpt: 36 }, { hpt: 20 }, { hpt: 10 }, { hpt: 36 }];
+        // 2. Set Row Heights (title, subtitle, header, data rows, summary row)
+        const rowHeights = [{ hpt: 34 }, { hpt: 22 }, { hpt: 38 }];
         for (let i = 0; i < rowCount; i++) {
             rowHeights.push({ hpt: 24 });
         }
+        rowHeights.push({ hpt: 26 }); // Summary row height
         ws['!rows'] = rowHeights;
 
-        // 3. Set Column Widths
-        const colWidths = [{ wch: 32 }]; // NAME OF THE STAFF
+        // 3. Set Column Widths (dynamic for staff names, comfortable for questions)
+        let maxStaffLen = 22;
+        staffNames.forEach(n => { if (n.length > maxStaffLen) maxStaffLen = n.length; });
+        const colWidths = [{ wch: Math.max(30, maxStaffLen + 4) }]; // NAME OF THE STAFF
         {% for q in questions %}
         colWidths.push({ wch: 22 });     // Question columns
         {% endfor %}
-        colWidths.push({ wch: 14 });     // TOTAL
+        colWidths.push({ wch: 16 });     // TOTAL
         ws['!cols'] = colWidths;
 
-        // 4. Style Cells: Title big & bold, Headers bold, Staff Names bold, Totals bold, Ratios NOT bold
-        // Title (Row 0): Big 16pt, Bold
+        // Clean border styles
+        const thinBorder = { style: "thin", color: { rgb: "CBD5E1" } };
+        const headerBorder = {
+            top: { style: "medium", color: { rgb: "94A3B8" } },
+            bottom: { style: "medium", color: { rgb: "94A3B8" } },
+            left: thinBorder,
+            right: thinBorder
+        };
+
+        // 4. Style Title (Row 0): Big 15pt, Bold Navy, Soft Fill, clean borders
         for (let c = 0; c < headers.length; c++) {
             const ref = XLSX.utils.encode_cell({ r: 0, c: c });
             if (!ws[ref]) ws[ref] = { t: 's', v: '' };
             ws[ref].s = {
-                font: { name: "Calibri", sz: 16, bold: true, color: { rgb: "0F172A" } },
+                font: { name: "Calibri", sz: 15, bold: true, color: { rgb: "0F172A" } },
                 alignment: { horizontal: "center", vertical: "center" },
-                fill: { fgColor: { rgb: "EEF2F6" } }
+                fill: { fgColor: { rgb: "EEF2F6" } },
+                border: {
+                    top: thinBorder,
+                    bottom: thinBorder,
+                    left: c === 0 ? thinBorder : undefined,
+                    right: c === lastColIdx ? thinBorder : undefined
+                }
             };
         }
 
-        // Subtitle (Row 1): 11pt, Bold, italic
+        // Subtitle (Row 1): 10.5pt Bold Slate, Soft Fill, clean borders
         for (let c = 0; c < headers.length; c++) {
             const ref = XLSX.utils.encode_cell({ r: 1, c: c });
             if (!ws[ref]) ws[ref] = { t: 's', v: '' };
             ws[ref].s = {
-                font: { name: "Calibri", sz: 11, bold: true, italic: true, color: { rgb: "475569" } },
+                font: { name: "Calibri", sz: 10.5, bold: true, color: { rgb: "475569" } },
                 alignment: { horizontal: "center", vertical: "center" },
-                fill: { fgColor: { rgb: "F8FAFC" } }
+                fill: { fgColor: { rgb: "F8FAFC" } },
+                border: {
+                    top: thinBorder,
+                    bottom: thinBorder,
+                    left: c === 0 ? thinBorder : undefined,
+                    right: c === lastColIdx ? thinBorder : undefined
+                }
             };
         }
 
-        // Headers (Row 3): 11pt, Bold, Uppercase, Wrapped
+        // Headers (Row 2): 10pt Bold Uppercase, Wrapped, Slate fill and medium borders
         for (let c = 0; c < headers.length; c++) {
-            const ref = XLSX.utils.encode_cell({ r: 3, c: c });
+            const ref = XLSX.utils.encode_cell({ r: 2, c: c });
             if (ws[ref]) {
                 ws[ref].s = {
                     font: { name: "Calibri", sz: 10, bold: true, color: { rgb: "0F172A" } },
                     fill: { fgColor: { rgb: "E2E8F0" } },
                     alignment: { horizontal: c === 0 ? "left" : "center", vertical: "center", wrapText: true },
-                    border: {
-                        top: { style: "medium", color: { rgb: "94A3B8" } },
-                        bottom: { style: "medium", color: { rgb: "94A3B8" } },
-                        left: { style: "thin", color: { rgb: "CBD5E1" } },
-                        right: { style: "thin", color: { rgb: "CBD5E1" } }
-                    }
+                    border: headerBorder
                 };
             }
         }
 
-        // Data Rows (Row 4 to 3 + rowCount):
-        for (let r = 4; r < 4 + rowCount; r++) {
+        // Data Rows (Row 3 to 2 + rowCount): Clear visible borders on all cells
+        for (let r = 3; r < 3 + rowCount; r++) {
             for (let c = 0; c < headers.length; c++) {
                 const ref = XLSX.utils.encode_cell({ r: r, c: c });
                 if (!ws[ref]) continue;
 
                 if (c === 0) {
-                    // Staff Name: BOLD
+                    // Staff Name: Bold, left-aligned
                     ws[ref].s = {
                         font: { name: "Calibri", sz: 11, bold: true, color: { rgb: "0F172A" } },
                         alignment: { horizontal: "left", vertical: "center" },
                         border: {
-                            bottom: { style: "thin", color: { rgb: "E2E8F0" } },
-                            left: { style: "thin", color: { rgb: "E2E8F0" } },
-                            right: { style: "thin", color: { rgb: "E2E8F0" } }
+                            top: thinBorder,
+                            bottom: thinBorder,
+                            left: thinBorder,
+                            right: thinBorder
                         }
                     };
-                } else if (c === headers.length - 1) {
-                    // Total Column: BOLD
+                } else if (c === lastColIdx) {
+                    // Total Column: Bold, soft slate fill, centered, 2 decimals
                     ws[ref].s = {
                         font: { name: "Calibri", sz: 11, bold: true, color: { rgb: "0F172A" } },
                         fill: { fgColor: { rgb: "F1F5F9" } },
                         alignment: { horizontal: "center", vertical: "center" },
                         numFmt: "0.00",
                         border: {
-                            bottom: { style: "thin", color: { rgb: "E2E8F0" } },
-                            left: { style: "thin", color: { rgb: "CBD5E1" } },
-                            right: { style: "thin", color: { rgb: "CBD5E1" } }
+                            top: thinBorder,
+                            bottom: thinBorder,
+                            left: thinBorder,
+                            right: thinBorder
                         }
                     };
                 } else {
-                    // Ratios (Question Scores): REGULAR (NOT BOLD)
+                    // Question Scores: Regular (not bold), centered, 2 decimals
                     ws[ref].s = {
                         font: { name: "Calibri", sz: 11, bold: false, color: { rgb: "334155" } },
                         alignment: { horizontal: "center", vertical: "center" },
                         numFmt: "0.00",
                         border: {
-                            bottom: { style: "thin", color: { rgb: "E2E8F0" } },
-                            left: { style: "thin", color: { rgb: "F1F5F9" } },
-                            right: { style: "thin", color: { rgb: "F1F5F9" } }
+                            top: thinBorder,
+                            bottom: thinBorder,
+                            left: thinBorder,
+                            right: thinBorder
                         }
                     };
                 }
             }
+        }
+
+        // Summary Row (Row 3 + rowCount): AVERAGE / OVERALL with single clean border
+        const summaryRowIdx = 3 + rowCount;
+        for (let c = 0; c < headers.length; c++) {
+            const ref = XLSX.utils.encode_cell({ r: summaryRowIdx, c: c });
+            if (!ws[ref]) continue;
+
+            const isStaffCol = (c === 0);
+            const isTotalCol = (c === lastColIdx);
+
+            ws[ref].s = {
+                font: { name: "Calibri", sz: isTotalCol ? 11 : 10.5, bold: true, color: { rgb: "0F172A" } },
+                fill: { fgColor: { rgb: isTotalCol ? "E2E8F0" : "F1F5F9" } },
+                alignment: { horizontal: isStaffCol ? "left" : "center", vertical: "center" },
+                numFmt: isStaffCol ? undefined : "0.00",
+                border: {
+                    top: { style: "thin", color: { rgb: "94A3B8" } },
+                    bottom: thinBorder,
+                    left: thinBorder,
+                    right: thinBorder
+                }
+            };
         }
 
         const wb = XLSX.utils.book_new();
@@ -397,7 +487,7 @@ function downloadEvaluationExcel() {
 
 function downloadCSVFallback(filename, evalTitle, unitName, headers) {
     let csv = `"${evalTitle.toUpperCase()} - ${unitName.toUpperCase()}"\n`;
-    csv += `"Template: {{ evaluation.template.title|escapejs }} | Care Unit: ${unitName}"\n\n`;
+    csv += `"Template: {{ evaluation.template.title|escapejs }} | Care Unit: ${unitName} | Total Staff: {{ rows|length }}"\n`;
     csv += headers.map(h => `"${h.replace(/"/g, '""').replace(/\n/g, ' - ')}"`).join(",") + "\n";
 
     {% for row in rows %}
@@ -416,6 +506,18 @@ function downloadCSVFallback(filename, evalTitle, unitName, headers) {
         csv += r.map(c => `"${c}"`).join(",") + "\n";
     }
     {% endfor %}
+
+    // Summary row in CSV
+    const sumRow = ["AVERAGE / OVERALL"];
+    {% for col in col_averages %}
+        {% if col.avg_score is not None %}
+        sumRow.push("{{ col.avg_score|floatformat:2 }}");
+        {% else %}
+        sumRow.push("");
+        {% endif %}
+    {% endfor %}
+    sumRow.push("{{ unit_total|floatformat:2 }}");
+    csv += sumRow.map(c => `"${c}"`).join(",") + "\n";
 
     const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");

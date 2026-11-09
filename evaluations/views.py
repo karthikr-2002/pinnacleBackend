@@ -56,6 +56,8 @@ def evaluation_create(request):
         if form.is_valid():
             evaluation = form.save(commit=False)
             evaluation.created_by = request.user
+            master_template = form.cleaned_data['template']
+            evaluation.template = master_template.create_snapshot(created_by=request.user)
             evaluation.save()
             form.save_m2m()  # Save tagged units
             messages.success(request, f"Evaluation '{evaluation.title}' created and tagged successfully!")
@@ -202,7 +204,7 @@ def template_list(request):
     if not is_admin(request.user):
         raise PermissionDenied("Only administrators can view templates.")
 
-    templates = EvaluationTemplate.objects.all().prefetch_related('questions', 'evaluations')
+    templates = EvaluationTemplate.objects.filter(is_active=True).prefetch_related('questions', 'evaluations', 'snapshots__evaluations')
     return render(request, 'evaluations/admin/template_list.html', {
         'templates': templates,
         'active_menu': 'templates',
@@ -282,6 +284,7 @@ def template_create(request):
 
             template = form.save(commit=False)
             template.created_by = request.user
+            template.is_active = True
             template.save()
 
             for q_data in valid_questions:
@@ -361,30 +364,59 @@ def template_edit(request, pk):
                     'active_menu': 'templates',
                 })
 
-            template = form.save()
+            has_evaluations = template.evaluations.exists()
 
-            existing_questions = {q.id: q for q in template.questions.all()}
-            saved_ids = set()
+            if has_evaluations:
+                # Immutable preservation: Existing tagged evaluations must NOT change!
+                # Freeze current template as snapshot for existing evaluations
+                template.is_active = False
+                template.save(update_fields=['is_active'])
 
-            for q_data in valid_questions:
-                qid = q_data.pop('id')
-                if qid and qid.isdigit() and int(qid) in existing_questions:
-                    q_obj = existing_questions[int(qid)]
-                    for attr, val in q_data.items():
-                        setattr(q_obj, attr, val)
-                    q_obj.save()
-                    saved_ids.add(q_obj.id)
-                else:
-                    new_q = Question.objects.create(template=template, **q_data)
-                    saved_ids.add(new_q.id)
+                # Create the new master template version with the edited fields & questions
+                new_master = EvaluationTemplate.objects.create(
+                    title=form.cleaned_data['title'],
+                    description=form.cleaned_data['description'],
+                    created_by=request.user,
+                    is_active=True,
+                    source_template=template.source_template or template,
+                )
+                for q_data in valid_questions:
+                    q_data.pop('id', None)
+                    Question.objects.create(template=new_master, **q_data)
 
-            # Delete questions removed in edit form (if any)
-            to_delete_ids = set(existing_questions.keys()) - saved_ids
-            if to_delete_ids:
-                template.questions.filter(id__in=to_delete_ids).delete()
+                messages.success(
+                    request,
+                    f"Template '{new_master.title}' updated successfully for future evaluations! Existing evaluations keep their original questions."
+                )
+                return redirect('evaluations:template_list')
+            else:
+                # No evaluations directly point to this master template: update in place
+                template = form.save(commit=False)
+                template.is_active = True
+                template.save()
 
-            messages.success(request, f"Template '{template.title}' updated successfully with {len(saved_ids)} questions!")
-            return redirect('evaluations:template_list')
+                existing_questions = {q.id: q for q in template.questions.all()}
+                saved_ids = set()
+
+                for q_data in valid_questions:
+                    qid = q_data.pop('id', None)
+                    if qid and qid.isdigit() and int(qid) in existing_questions:
+                        q_obj = existing_questions[int(qid)]
+                        for attr, val in q_data.items():
+                            setattr(q_obj, attr, val)
+                        q_obj.save()
+                        saved_ids.add(q_obj.id)
+                    else:
+                        new_q = Question.objects.create(template=template, **q_data)
+                        saved_ids.add(new_q.id)
+
+                # Delete questions removed in edit form (if any)
+                to_delete_ids = set(existing_questions.keys()) - saved_ids
+                if to_delete_ids:
+                    template.questions.filter(id__in=to_delete_ids).delete()
+
+                messages.success(request, f"Template '{template.title}' updated successfully with {len(saved_ids)} questions!")
+                return redirect('evaluations:template_list')
     else:
         form = EvaluationTemplateForm(instance=template)
 

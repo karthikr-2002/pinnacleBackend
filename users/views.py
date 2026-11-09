@@ -73,12 +73,20 @@ def employee_list(request):
         raise PermissionDenied('Only administrators can manage employees.')
 
     search_query = request.GET.get('q', '').strip()
-    employees = (
+    status_filter = request.GET.get('status', '').strip().lower()
+
+    base_qs = (
         User.objects.exclude(role='admin')
         .exclude(is_superuser=True)
         .prefetch_related('assigned_units')
-        .order_by('first_name', 'last_name', 'username')
     )
+
+    total_count = base_qs.count()
+    active_count = base_qs.filter(is_active=True).count()
+    inactive_count = base_qs.filter(is_active=False).count()
+
+    employees = base_qs.order_by('first_name', 'last_name', 'username')
+
     if search_query:
         employees = employees.annotate(
             full_name_search=Concat('first_name', Value(' '), 'last_name')
@@ -86,10 +94,21 @@ def employee_list(request):
             Q(first_name__icontains=search_query)
             | Q(last_name__icontains=search_query)
             | Q(full_name_search__icontains=search_query)
+            | Q(employee_id__icontains=search_query)
         )
+
+    if status_filter == 'active':
+        employees = employees.filter(is_active=True)
+    elif status_filter == 'inactive':
+        employees = employees.filter(is_active=False)
+
     return render(request, 'users/admin/employee_list.html', {
         'employees': employees,
         'search_query': search_query,
+        'status_filter': status_filter,
+        'total_count': total_count,
+        'active_count': active_count,
+        'inactive_count': inactive_count,
         'active_menu': 'employees',
     })
 

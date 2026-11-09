@@ -36,6 +36,19 @@ class EvaluationTemplate(models.Model):
         blank=True,
         related_name='created_templates'
     )
+    is_active = models.BooleanField(
+        default=True,
+        db_index=True,
+        help_text="True for active catalog templates. False for immutable evaluation snapshots."
+    )
+    source_template = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='snapshots',
+        help_text="The master template this snapshot was created from (if snapshot)."
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -47,6 +60,35 @@ class EvaluationTemplate(models.Model):
     @property
     def questions_count(self):
         return self.questions.count()
+
+    @property
+    def total_evaluations_count(self):
+        direct = self.evaluations.count()
+        from_snapshots = Evaluation.objects.filter(template__source_template=self).count()
+        return direct + from_snapshots
+
+    def create_snapshot(self, created_by=None):
+        """Creates an immutable snapshot of this template and its questions for an evaluation."""
+        snapshot = EvaluationTemplate.objects.create(
+            title=self.title,
+            description=self.description,
+            created_by=created_by or self.created_by,
+            is_active=False,
+            source_template=self if self.is_active else (self.source_template or self),
+        )
+        for q in self.questions.all().order_by('order', 'id'):
+            Question.objects.create(
+                template=snapshot,
+                question_text=q.question_text,
+                order=q.order,
+                label_0=q.label_0,
+                label_1=q.label_1,
+                label_2=q.label_2,
+                label_3=q.label_3,
+                label_4=q.label_4,
+                label_5=q.label_5,
+            )
+        return snapshot
 
 
 class Question(models.Model):
@@ -226,7 +268,7 @@ class Evaluation(models.Model):
             from users.models import User
             return User.objects.none()
         from users.models import User
-        return User.objects.filter(assigned_units__in=user_units).exclude(id=user.id).distinct()
+        return User.objects.filter(assigned_units__in=user_units, is_active=True).exclude(id=user.id).distinct()
 
     def get_user_progress(self, user):
         """Returns (completed_count, total_peers_count) for the logged-in evaluator."""

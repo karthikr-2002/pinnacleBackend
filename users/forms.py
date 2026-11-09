@@ -199,6 +199,15 @@ class EmployeeCreateForm(forms.Form):
             'class': INPUT_CLASS,
         }),
     )
+    is_active = forms.TypedChoiceField(
+        label='Status',
+        coerce=lambda x: str(x).lower() in ('true', '1', 'active'),
+        choices=[(True, 'Active'), (False, 'Inactive')],
+        initial=True,
+        widget=forms.Select(attrs={
+            'class': INPUT_CLASS,
+        }),
+    )
 
     def __init__(self, *args, **kwargs):
         from evaluations.models import Unit
@@ -254,6 +263,7 @@ class EmployeeCreateForm(forms.Form):
             role='user',
             job_title='Care Staff',
             avatar_url='/static/images/default-avatar.png',
+            is_active=self.cleaned_data.get('is_active', True),
         )
         user.set_password(self.cleaned_data['password'])
         clear_photo = self.data.get('clear_photo') == '1'
@@ -335,6 +345,15 @@ class EmployeeEditForm(forms.Form):
             'class': INPUT_CLASS,
         }),
     )
+    is_active = forms.TypedChoiceField(
+        label='Status',
+        coerce=lambda x: str(x).lower() in ('true', '1', 'active'),
+        choices=[(True, 'Active'), (False, 'Inactive')],
+        initial=True,
+        widget=forms.Select(attrs={
+            'class': INPUT_CLASS,
+        }),
+    )
 
     def __init__(self, *args, instance=None, **kwargs):
         from evaluations.models import Unit
@@ -347,6 +366,7 @@ class EmployeeEditForm(forms.Form):
             self.fields['employee_id'].initial = instance.employee_id or ''
             self.fields['email'].initial = instance.email
             self.fields['phone'].initial = instance.phone or ''
+            self.fields['is_active'].initial = instance.is_active
             current_unit = instance.assigned_units.first()
             if current_unit:
                 self.fields['unit'].initial = current_unit.pk
@@ -398,6 +418,7 @@ class EmployeeEditForm(forms.Form):
         user.last_name = last_name
         user.email = self.cleaned_data['email']
         user.phone = self.cleaned_data['phone']
+        user.is_active = self.cleaned_data.get('is_active', True)
         clear_photo = self.data.get('clear_photo') == '1'
         photo = self.cleaned_data.get('photo')
         if clear_photo:

@@ -14,6 +14,11 @@
                 </h3>
                 <p class="text-xs text-slate-500 mt-1">
                     Are you sure you want to {% if template_obj %}save the updated changes to{% else %}create and save{% endif %} this evaluation template?
+                    {% if template_obj and template_obj.evaluations.exists %}
+                    <span class="block text-emerald-600 font-semibold mt-1.5">
+                        <i class="fa-solid fa-shield-halved mr-1"></i> Existing evaluations will safely keep their original questions. These updates will apply to future evaluations.
+                    </span>
+                    {% endif %}
                 </p>
             </div>
         </div>
@@ -138,6 +143,18 @@ document.addEventListener('keydown', function (e) {
         <h1 class="text-2xl font-extrabold text-slate-800 tracking-tight">{{ title }}</h1>
         <p class="text-sm text-slate-500 mt-1">Configure evaluation questions with custom 0 to 5 rating scale choice labels.</p>
     </div>
+
+    {% if template_obj and template_obj.evaluations.exists %}
+    <div class="p-4 rounded-2xl bg-blue-50/80 border border-blue-200 text-blue-900 text-xs flex items-center gap-3.5">
+        <div class="w-9 h-9 rounded-xl bg-blue-100 text-[#5D87FF] flex items-center justify-center text-base font-bold flex-shrink-0">
+            <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <div>
+            <p class="font-bold text-slate-800 text-xs sm:text-sm">Existing evaluations will be safely preserved</p>
+            <p class="text-slate-600 mt-0.5">This template is currently in use. Edits made here will apply to <strong>future evaluations</strong>, while all existing evaluations will keep their original questions and scores.</p>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Main Form -->
     <form method="POST" class="space-y-6" id="template-create-form">
@@ -619,6 +636,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 </h3>
                 <p class="text-xs text-slate-500 mt-1">
                     Are you sure you want to {% if template_obj %}save the updated changes to{% else %}create and save{% endif %} this evaluation template?
+                    {% if template_obj and template_obj.evaluations.exists %}
+                    <span class="block text-emerald-600 font-semibold mt-1.5">
+                        <i class="fa-solid fa-shield-halved mr-1"></i> Existing evaluations will safely keep their original questions. These updates will apply to future evaluations.
+                    </span>
+                    {% endif %}
                 </p>
             </div>
         </div>

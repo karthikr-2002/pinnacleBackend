@@ -85,6 +85,10 @@ class EvaluationForm(forms.ModelForm):
         help_text="Target closing deadline for display purposes."
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['template'].queryset = EvaluationTemplate.objects.filter(is_active=True).order_by('title')
+
     class Meta:
         model = Evaluation
         fields = ('title', 'description', 'template', 'start_date', 'end_date', 'status')

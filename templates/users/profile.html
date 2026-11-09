@@ -28,7 +28,11 @@
                         {% else %}
                             <img src="{% static 'images/default-avatar.png' %}" alt="{{ user_obj.display_name }}" class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border-4 border-white/90 shadow-md bg-white p-1">
                         {% endif %}
+                        {% if user_obj.is_active %}
                         <span class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-400 border-2 border-white shadow-sm" title="Active Account"></span>
+                        {% else %}
+                        <span class="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-slate-400 border-2 border-white shadow-sm" title="Inactive Account"></span>
+                        {% endif %}
                     </div>
 
                     <div class="min-w-0">
@@ -46,7 +50,11 @@
                             <span class="font-mono bg-white/10 px-2 py-0.5 rounded-lg">@{{ user_obj.username }}</span>
                             <span>&bull;</span>
                             <span class="flex items-center gap-1.5">
+                                {% if user_obj.is_active %}
                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Active Account
+                                {% else %}
+                                <span class="w-1.5 h-1.5 rounded-full bg-slate-300"></span> Inactive Account
+                                {% endif %}
                             </span>
                             <span>&bull;</span>
                             <span class="flex items-center gap-1.5">
@@ -155,9 +163,15 @@
                     <!-- Account Status -->
                     <div class="p-4 rounded-2xl bg-slate-50/70 border border-slate-100">
                         <span class="text-slate-400 block font-semibold mb-1 uppercase tracking-wider text-[10px]">Account Status</span>
+                        {% if user_obj.is_active %}
                         <span class="text-sm font-bold text-emerald-600 flex items-center gap-1.5">
                             <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Active
                         </span>
+                        {% else %}
+                        <span class="text-sm font-bold text-slate-500 flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-slate-400"></span> Inactive
+                        </span>
+                        {% endif %}
                     </div>
 
                     <!-- Member Since -->

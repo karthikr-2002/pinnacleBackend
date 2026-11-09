@@ -117,13 +117,23 @@
             </div>
             {% endif %}
 
-            <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Unit <span class="text-rose-500">*</span>
-                </label>
-                {{ form.unit }}
-                <p class="text-[11px] text-slate-400 mt-1">Required. The employee will appear in peer evaluations for this unit.</p>
-                {% if form.unit.errors %}<p class="text-xs text-rose-500 mt-1">{{ form.unit.errors.0 }}</p>{% endif %}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Unit <span class="text-rose-500">*</span>
+                    </label>
+                    {{ form.unit }}
+                    <p class="text-[11px] text-slate-400 mt-1">Required. The employee will appear in peer evaluations for this unit.</p>
+                    {% if form.unit.errors %}<p class="text-xs text-rose-500 mt-1">{{ form.unit.errors.0 }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                        Status <span class="text-rose-500">*</span>
+                    </label>
+                    {{ form.is_active }}
+                    <p class="text-[11px] text-slate-400 mt-1">Active staff can sign in and participate in evaluations.</p>
+                    {% if form.is_active.errors %}<p class="text-xs text-rose-500 mt-1">{{ form.is_active.errors.0 }}</p>{% endif %}
+                </div>
             </div>
 
             <div class="pt-2 flex items-center justify-end gap-3">
@@ -171,6 +181,10 @@
             <div class="flex items-center justify-between">
                 <span class="text-slate-400">Care Unit:</span>
                 <span class="font-semibold text-slate-700 ml-2" id="confirm-modal-unit">—</span>
+            </div>
+            <div class="flex items-center justify-between">
+                <span class="text-slate-400">Status:</span>
+                <span class="font-semibold text-slate-700 ml-2" id="confirm-modal-status">—</span>
             </div>
         </div>
 
@@ -243,6 +257,13 @@
         if (unitSelect && unitSelect.selectedIndex >= 0) {
             const unitText = unitSelect.options[unitSelect.selectedIndex].text;
             document.getElementById('confirm-modal-unit').textContent = unitText || '—';
+        }
+
+        const statusSelect = document.querySelector('select[name="is_active"]');
+        if (statusSelect && statusSelect.selectedIndex >= 0) {
+            const statusText = statusSelect.options[statusSelect.selectedIndex].text;
+            const statusEl = document.getElementById('confirm-modal-status');
+            if (statusEl) statusEl.textContent = statusText || 'Active';
         }
 
         document.getElementById('confirm-save-modal').classList.remove('hidden');
