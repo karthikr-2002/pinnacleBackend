@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, LoginAttempt
+from .models import User, LoginAttempt, AuditLog
 
 
 @admin.register(User)
@@ -31,4 +31,23 @@ class LoginAttemptAdmin(admin.ModelAdmin):
     def unlock_accounts(self, request, queryset):
         queryset.update(failed_count=0, locked_until=None)
         self.message_user(request, "Selected login records have been unlocked.")
+
+
+@admin.register(AuditLog)
+class AuditLogAdmin(admin.ModelAdmin):
+    list_display = ('timestamp', 'action', 'actor_username', 'actor_role', 'target_type', 'target_repr', 'ip_address')
+    list_filter = ('action', 'target_type', 'actor_role', 'timestamp')
+    search_fields = ('actor_username', 'target_repr', 'target_id', 'ip_address', 'action')
+    date_hierarchy = 'timestamp'
+    ordering = ('-timestamp',)
+
+    # Make strictly immutable and read-only in the admin interface
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
 

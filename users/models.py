@@ -101,6 +101,60 @@ class LoginAttempt(models.Model):
         return max(1, math.ceil(secs / 60)) if secs > 0 else 0
 
 
+class AuditLog(models.Model):
+    """
+    Immutable audit trail for compliance, transparency, and accountability across Pinnacle Care Homes.
+    Captures who performed the action, from what IP, against what target, and what was modified.
+    """
+    ACTION_CHOICES = (
+        ('LOGIN_SUCCESS', 'User Signed In'),
+        ('LOGIN_FAILED', 'Failed Sign-in Attempt'),
+        ('LOGIN_LOCKED', 'Account Locked Out'),
+        ('LOGOUT', 'User Signed Out'),
+        ('SESSION_TERMINATED', 'Session Terminated'),
+        ('USER_CREATED', 'Employee Account Created'),
+        ('USER_UPDATED', 'Employee Profile Updated'),
+        ('USER_STATUS_CHANGED', 'Employee Status Changed'),
+        ('PASSWORD_RESET', 'Password Reset by Admin'),
+        ('PASSWORD_CHANGED', 'Password Changed by User'),
+        ('UNIT_CREATED', 'Care Unit Created'),
+        ('UNIT_UPDATED', 'Care Unit Updated'),
+        ('TEMPLATE_CREATED', 'Template Created'),
+        ('TEMPLATE_UPDATED', 'Template Updated'),
+        ('EVALUATION_CREATED', 'Evaluation Created'),
+        ('RATING_SUBMITTED', 'Peer Review Rating Submitted'),
+    )
+
+    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
+    actor = models.ForeignKey(
+        'User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='audit_logs'
+    )
+    actor_username = models.CharField(max_length=150, db_index=True)
+    actor_role = models.CharField(max_length=50, blank=True)
+    action = models.CharField(max_length=50, choices=ACTION_CHOICES, db_index=True)
+    target_type = models.CharField(max_length=100, blank=True, db_index=True)
+    target_id = models.CharField(max_length=100, blank=True)
+    target_repr = models.CharField(max_length=255, blank=True)
+    details = models.JSONField(default=dict, blank=True)
+    ip_address = models.CharField(max_length=45, blank=True)
+    user_agent = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['action', 'timestamp']),
+            models.Index(fields=['actor_username', 'timestamp']),
+            models.Index(fields=['target_type', 'target_id']),
+        ]
+
+    def __str__(self):
+        return f"[{self.timestamp.strftime('%Y-%m-%d %H:%M:%S')}] {self.actor_username} - {self.action} on {self.target_repr or self.target_type}"
+
+
 # ==============================================================================
 # AUTOMATIC ORPHANED FILE CLEANUP SIGNALS
 # ==============================================================================

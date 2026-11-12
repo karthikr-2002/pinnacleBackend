@@ -5,6 +5,7 @@ app_name = 'employees'
 
 urlpatterns = [
     path('', views.employee_list, name='list'),
+    path('audit/', views.audit_log_view, name='audit_log'),
     path('create/', views.employee_create, name='create'),
     path('<int:pk>/edit/', views.employee_edit, name='edit'),
     path('<int:pk>/reset-password/', views.employee_reset_password, name='reset_password'),

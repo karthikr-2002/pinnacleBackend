@@ -13,6 +13,14 @@ class EnforceActiveUserMiddleware:
 
     def __call__(self, request):
         if request.user.is_authenticated and not request.user.is_active:
+            from .audit import log_audit_event
+            log_audit_event(
+                'SESSION_TERMINATED',
+                request=request,
+                actor=request.user,
+                target=request.user,
+                details={'reason': 'User deactivated by administrator; active session immediately revoked.'}
+            )
             logout(request)
             messages.error(
                 request,

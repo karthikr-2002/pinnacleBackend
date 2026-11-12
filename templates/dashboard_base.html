@@ -102,6 +102,18 @@
                         </div>
                         <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-100">Admin</span>
                     </a>
+
+                    <!-- Security & Audit Logs (Admin Only) -->
+                    <a href="{% url 'employees:audit_log' %}"
+                       class="flex items-center justify-between px-3.5 py-2.5 rounded-xl font-medium text-sm transition group {% if active_menu == 'audit_log' %}bg-[#5D87FF] text-white shadow-md shadow-blue-500/20{% else %}text-slate-600 hover:bg-slate-50{% endif %}">
+                        <div class="flex items-center gap-3">
+                            <div class="w-5 h-5 flex items-center justify-center">
+                                <i class="fa-solid fa-shield-halved text-sm"></i>
+                            </div>
+                            <span>Security & Audit</span>
+                        </div>
+                        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-[#5D87FF] border border-blue-100">Live</span>
+                    </a>
                 </nav>
             {% else %}
                 <!-- REGULAR EMPLOYEE / USER SECTION -->

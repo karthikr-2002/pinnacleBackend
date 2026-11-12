@@ -5,16 +5,18 @@ from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q, Value
 from django.db.models.functions import Concat
+from django.core.paginator import Paginator
 from .forms import (
     UserLoginForm, UserRegisterForm, EmployeeCreateForm, EmployeeEditForm,
     EmployeeResetPasswordForm, UserProfileForm, UserSelfPasswordChangeForm,
     AdminProfileEditForm
 )
-from .models import User
+from .models import User, AuditLog
 from .security import (
     get_client_ip, check_login_lockout, record_login_failure, record_login_success,
     admin_required, is_admin_user
 )
+from .audit import log_audit_event
 
 
 def is_admin(user):
@@ -34,6 +36,12 @@ def login_view(request):
         # 1. Check if user or IP is currently locked out
         is_locked, remaining_mins, remaining_secs, reason = check_login_lockout(username, ip_address)
         if is_locked:
+            log_audit_event(
+                'LOGIN_LOCKED',
+                request=request,
+                target_repr=username,
+                details={'locked_minutes': remaining_mins, 'reason': reason}
+            )
             messages.error(
                 request,
                 f"Too many failed login attempts ({reason}). "
@@ -56,6 +64,14 @@ def login_view(request):
             remember_me = form.cleaned_data.get('remember_me')
             login(request, user)
 
+            log_audit_event(
+                'LOGIN_SUCCESS',
+                request=request,
+                actor=user,
+                target=user,
+                details={'remember_me': bool(remember_me)}
+            )
+
             if remember_me:
                 request.session.set_expiry(1209600)  # 2 weeks
             else:
@@ -70,6 +86,12 @@ def login_view(request):
             # Login failed - record attempt and evaluate lockout threshold
             is_locked, remaining_attempts, remaining_mins = record_login_failure(username, ip_address)
             if is_locked:
+                log_audit_event(
+                    'LOGIN_LOCKED',
+                    request=request,
+                    target_repr=username,
+                    details={'locked_minutes': remaining_mins, 'reason': 'Failed attempts threshold reached'}
+                )
                 messages.error(
                     request,
                     f"Too many failed login attempts. "
@@ -80,6 +102,12 @@ def login_view(request):
                     'remaining_minutes': remaining_mins,
                 })
             else:
+                log_audit_event(
+                    'LOGIN_FAILED',
+                    request=request,
+                    target_repr=username,
+                    details={'remaining_attempts': remaining_attempts, 'reason': 'Invalid credentials'}
+                )
                 messages.error(
                     request,
                     f"Invalid username or password. "
@@ -103,6 +131,14 @@ def login_view(request):
 
 
 def logout_view(request):
+    if request.user.is_authenticated:
+        log_audit_event(
+            'LOGOUT',
+            request=request,
+            actor=request.user,
+            target=request.user,
+            details={'username': request.user.username}
+        )
     logout(request)
     messages.info(request, "You have been successfully logged out.")
     return redirect('users:login')
@@ -180,6 +216,17 @@ def employee_create(request):
         if form.is_valid():
             employee = form.save()
             unit = form.cleaned_data['unit']
+            log_audit_event(
+                'USER_CREATED',
+                request=request,
+                target=employee,
+                details={
+                    'employee_id': employee.employee_id,
+                    'username': employee.username,
+                    'unit': unit.name,
+                    'is_active': employee.is_active,
+                }
+            )
             messages.success(
                 request,
                 f"Employee '{employee.display_name}' ({employee.employee_id}) created and assigned to {unit.name}."
@@ -210,9 +257,27 @@ def employee_edit(request, pk):
     units = Unit.objects.all().order_by('name')
 
     if request.method == 'POST':
+        old_is_active = employee.is_active
         form = EmployeeEditForm(request.POST, request.FILES, instance=employee)
         if form.is_valid():
             employee = form.save()
+            if old_is_active != employee.is_active:
+                log_audit_event(
+                    'USER_STATUS_CHANGED',
+                    request=request,
+                    target=employee,
+                    details={
+                        'old_active': old_is_active,
+                        'new_active': employee.is_active,
+                        'status': employee.status_label
+                    }
+                )
+            log_audit_event(
+                'USER_UPDATED',
+                request=request,
+                target=employee,
+                details={'updated_by': request.user.username}
+            )
             messages.success(
                 request,
                 f"Employee '{employee.display_name}' was updated."
@@ -244,6 +309,12 @@ def employee_reset_password(request, pk):
         form = EmployeeResetPasswordForm(employee, request.POST)
         if form.is_valid():
             form.save()
+            log_audit_event(
+                'PASSWORD_RESET',
+                request=request,
+                target=employee,
+                details={'reset_by_admin': request.user.username}
+            )
             messages.success(
                 request,
                 f"Password for employee '{employee.display_name}' (@{employee.username}) was successfully reset."
@@ -287,6 +358,12 @@ def profile_view(request):
 
             if profile_form.is_valid():
                 profile_form.save()
+                log_audit_event(
+                    'USER_UPDATED',
+                    request=request,
+                    target=user,
+                    details={'self_service': True, 'is_admin': user_is_admin}
+                )
                 messages.success(request, "Your profile details have been updated successfully.")
                 return redirect('users:profile')
             messages.error(request, "Please correct the errors in the profile form.")
@@ -296,6 +373,12 @@ def profile_view(request):
             if password_form.is_valid():
                 password_form.save()
                 update_session_auth_hash(request, user)
+                log_audit_event(
+                    'PASSWORD_CHANGED',
+                    request=request,
+                    target=user,
+                    details={'self_service': True}
+                )
                 messages.success(request, "Your password has been changed successfully.")
                 return redirect('users:profile')
             messages.error(request, "Please correct the errors in the password form.")
@@ -310,4 +393,41 @@ def profile_view(request):
         'show_password_modal': show_password_modal,
         'is_admin_user': user_is_admin,
         'active_menu': 'profile',
+    })
+
+
+@admin_required
+def audit_log_view(request):
+    """
+    Admin view: Immutable compliance and security audit trail.
+    Supports real-time search, category filtering, and pagination.
+    """
+    search_query = request.GET.get('q', '').strip()
+    action_filter = request.GET.get('action', '').strip()
+
+    audit_qs = AuditLog.objects.all().order_by('-timestamp')
+
+    if action_filter:
+        audit_qs = audit_qs.filter(action=action_filter)
+
+    if search_query:
+        audit_qs = audit_qs.filter(
+            Q(actor_username__icontains=search_query) |
+            Q(target_repr__icontains=search_query) |
+            Q(target_type__icontains=search_query) |
+            Q(ip_address__icontains=search_query) |
+            Q(action__icontains=search_query)
+        )
+
+    paginator = Paginator(audit_qs, 30)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'users/admin/audit_log.html', {
+        'page_obj': page_obj,
+        'search_query': search_query,
+        'action_filter': action_filter,
+        'action_choices': AuditLog.ACTION_CHOICES,
+        'total_logs': audit_qs.count(),
+        'active_menu': 'audit_log',
     })

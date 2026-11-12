@@ -9,6 +9,7 @@ from .models import Unit, EvaluationTemplate, Question, Evaluation, EvaluationSu
 from .forms import UnitForm, EvaluationTemplateForm, EvaluationForm
 from users.models import User
 from users.security import admin_required, is_admin_user
+from users.audit import log_audit_event
 
 
 def is_admin(user):
@@ -56,6 +57,17 @@ def evaluation_create(request):
             evaluation.template = master_template.create_snapshot(created_by=request.user)
             evaluation.save()
             form.save_m2m()  # Save tagged units
+            log_audit_event(
+                'EVALUATION_CREATED',
+                request=request,
+                target=evaluation,
+                details={
+                    'title': evaluation.title,
+                    'template': master_template.title,
+                    'start_date': str(evaluation.start_date),
+                    'end_date': str(evaluation.end_date),
+                }
+            )
             messages.success(request, f"Evaluation '{evaluation.title}' created and tagged successfully!")
             return redirect('evaluations:evaluation_list')
     else:
@@ -277,6 +289,13 @@ def template_create(request):
             for q_data in valid_questions:
                 Question.objects.create(template=template, **q_data)
 
+            log_audit_event(
+                'TEMPLATE_CREATED',
+                request=request,
+                target=template,
+                details={'title': template.title, 'questions_count': len(valid_questions)}
+            )
+
             messages.success(request, f"Template '{template.title}' created with {len(valid_questions)} questions!")
             return redirect('evaluations:template_list')
     else:
@@ -399,6 +418,13 @@ def template_edit(request, pk):
                 if to_delete_ids:
                     template.questions.filter(id__in=to_delete_ids).delete()
 
+                log_audit_event(
+                    'TEMPLATE_UPDATED',
+                    request=request,
+                    target=template,
+                    details={'title': template.title, 'questions_count': len(saved_ids)}
+                )
+
                 messages.success(request, f"Template '{template.title}' updated successfully with {len(saved_ids)} questions!")
                 return redirect('evaluations:template_list')
     else:
@@ -463,6 +489,12 @@ def unit_create(request):
         form = UnitForm(request.POST)
         if form.is_valid():
             unit = form.save()
+            log_audit_event(
+                'UNIT_CREATED',
+                request=request,
+                target=unit,
+                details={'name': unit.name, 'place': unit.place}
+            )
             messages.success(request, f"Unit '{unit.name}' created successfully!")
             return redirect('evaluations:unit_list')
     else:
@@ -484,6 +516,12 @@ def unit_edit(request, pk):
         form = UnitForm(request.POST, instance=unit)
         if form.is_valid():
             unit = form.save()
+            log_audit_event(
+                'UNIT_UPDATED',
+                request=request,
+                target=unit,
+                details={'name': unit.name, 'place': unit.place}
+            )
             messages.success(request, f"Unit '{unit.name}' updated successfully!")
             return redirect('evaluations:unit_list')
     else:
@@ -973,6 +1011,22 @@ def evaluation_rate(request, pk, evaluatee_id):
 
             # Sync evaluation status dynamically (transitions to in_progress or completed)
             evaluation.sync_status()
+
+            log_audit_event(
+                'RATING_SUBMITTED',
+                request=request,
+                target=submission,
+                target_repr=f"Peer Review for {evaluatee.display_name} in {unit.name}",
+                details={
+                    'evaluation_id': evaluation.id,
+                    'evaluation_title': evaluation.title,
+                    'evaluatee_id': evaluatee.id,
+                    'evaluatee_name': evaluatee.display_name,
+                    'unit_id': unit.id,
+                    'unit_name': unit.name,
+                    'ratings_count': len(ratings_to_create),
+                }
+            )
 
             messages.success(request, f"Evaluation for {evaluatee.get_full_name() or evaluatee.username} submitted successfully!")
             return redirect('evaluations:user_evaluations')
