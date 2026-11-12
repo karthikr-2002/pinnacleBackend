@@ -25,6 +25,23 @@
                 <p class="text-sm text-slate-500 mt-1">Sign in with your credentials to continue to your dashboard</p>
             </div>
 
+            {% if is_locked %}
+            <div class="mb-5 p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 flex items-start gap-3 text-xs">
+                <div class="w-8 h-8 rounded-xl bg-rose-200 text-rose-700 flex items-center justify-center flex-shrink-0 text-sm">
+                    <i class="fa-solid fa-lock"></i>
+                </div>
+                <div>
+                    <strong class="font-bold block text-sm mb-0.5">Account Temporarily Locked</strong>
+                    <span>Too many failed sign-in attempts. Access is locked for <strong>{{ remaining_minutes }} minute(s)</strong> for security. Please wait or contact your administrator.</span>
+                </div>
+            </div>
+            {% elif remaining_attempts is not None %}
+            <div class="mb-5 p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 flex items-center gap-2.5 text-xs font-semibold">
+                <i class="fa-solid fa-triangle-exclamation text-amber-600"></i>
+                <span><strong>{{ remaining_attempts }}</strong> attempt{{ remaining_attempts|pluralize }} remaining before security lockout.</span>
+            </div>
+            {% endif %}
+
             <!-- Login Form -->
             <form method="POST" action="{% url 'users:login' %}" class="space-y-4">
                 {% csrf_token %}

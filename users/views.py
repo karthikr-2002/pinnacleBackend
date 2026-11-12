@@ -5,8 +5,15 @@ from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q, Value
 from django.db.models.functions import Concat
-from .forms import UserLoginForm, UserRegisterForm, EmployeeCreateForm, EmployeeEditForm, EmployeeResetPasswordForm, UserProfileForm, UserSelfPasswordChangeForm, AdminProfileEditForm
+from .forms import (
+    UserLoginForm, UserRegisterForm, EmployeeCreateForm, EmployeeEditForm,
+    EmployeeResetPasswordForm, UserProfileForm, UserSelfPasswordChangeForm,
+    AdminProfileEditForm
+)
 from .models import User
+from .security import (
+    get_client_ip, check_login_lockout, record_login_failure, record_login_success
+)
 
 
 def is_admin(user):
@@ -17,10 +24,34 @@ def login_view(request):
     if request.user.is_authenticated:
         return redirect('dashboard:index')
 
+    ip_address = get_client_ip(request)
+    context = {}
+
     if request.method == 'POST':
+        username = request.POST.get('username', '').strip()
+
+        # 1. Check if user or IP is currently locked out
+        is_locked, remaining_mins, remaining_secs, reason = check_login_lockout(username, ip_address)
+        if is_locked:
+            messages.error(
+                request,
+                f"Too many failed login attempts ({reason}). "
+                f"Access has been temporarily locked for security. "
+                f"Please try again in {remaining_mins} minute(s)."
+            )
+            context.update({
+                'form': UserLoginForm(request),
+                'is_locked': True,
+                'remaining_minutes': remaining_mins,
+            })
+            return render(request, 'users/login.html', context)
+
         form = UserLoginForm(request, data=request.POST)
         if form.is_valid():
             user = form.get_user()
+            # Clear any failed attempt counter on success
+            record_login_success(username, ip_address)
+
             remember_me = form.cleaned_data.get('remember_me')
             login(request, user)
 
@@ -35,11 +66,39 @@ def login_view(request):
                 return redirect(next_url)
             return redirect('dashboard:index')
         else:
-            messages.error(request, "Invalid username or password. Please check your credentials.")
+            # Login failed - record attempt and evaluate lockout threshold
+            is_locked, remaining_attempts, remaining_mins = record_login_failure(username, ip_address)
+            if is_locked:
+                messages.error(
+                    request,
+                    f"Too many failed login attempts. "
+                    f"This account has been temporarily locked for {remaining_mins} minutes for security."
+                )
+                context.update({
+                    'is_locked': True,
+                    'remaining_minutes': remaining_mins,
+                })
+            else:
+                messages.error(
+                    request,
+                    f"Invalid username or password. "
+                    f"{remaining_attempts} attempt(s) remaining before temporary account lockout."
+                )
+                context.update({
+                    'remaining_attempts': remaining_attempts,
+                })
+            context['form'] = form
     else:
-        form = UserLoginForm()
+        # GET request - check if IP is locked
+        is_locked, remaining_mins, remaining_secs, reason = check_login_lockout('', ip_address)
+        if is_locked:
+            context.update({
+                'is_locked': True,
+                'remaining_minutes': remaining_mins,
+            })
+        context['form'] = UserLoginForm()
 
-    return render(request, 'users/login.html', {'form': form})
+    return render(request, 'users/login.html', context)
 
 
 def logout_view(request):
