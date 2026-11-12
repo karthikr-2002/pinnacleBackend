@@ -10,6 +10,7 @@ from .forms import UnitForm, EvaluationTemplateForm, EvaluationForm
 from users.models import User
 from users.security import admin_required, is_admin_user
 from users.audit import log_audit_event
+from users.id_encryption import decode_id_or_none
 
 
 def is_admin(user):
@@ -547,8 +548,10 @@ def admin_submissions_list(request):
     selected_unit_id = request.GET.get('unit', '')
     search_q = request.GET.get('q', '').strip().lower()
 
-    if selected_unit_id and selected_unit_id.isdigit():
-        submissions_qs = submissions_qs.filter(unit_id=int(selected_unit_id))
+    if selected_unit_id:
+        unit_pk = decode_id_or_none(selected_unit_id)
+        if unit_pk:
+            submissions_qs = submissions_qs.filter(unit_id=unit_pk)
 
     # Group submissions by unit and evaluation
     units_dict = {}
@@ -668,8 +671,9 @@ def admin_user_received_reviews(request, evaluation_id, user_id):
     evaluatee = get_object_or_404(User, pk=user_id)
     questions = list(evaluation.template.questions.all().order_by('order'))
 
-    unit_id = request.GET.get('unit')
-    unit = get_object_or_404(Unit, pk=unit_id) if unit_id and unit_id.isdigit() else None
+    unit_id_param = request.GET.get('unit')
+    unit_pk = decode_id_or_none(unit_id_param)
+    unit = get_object_or_404(Unit, pk=unit_pk) if unit_pk else None
 
     submissions_qs = EvaluationSubmission.objects.filter(
         evaluation=evaluation,
@@ -738,8 +742,10 @@ def evaluation_matrix(request, pk):
 
     selected_unit_id = request.GET.get('unit', '')
     selected_unit = None
-    if selected_unit_id and selected_unit_id.isdigit():
-        selected_unit = Unit.objects.filter(id=int(selected_unit_id)).first()
+    if selected_unit_id:
+        unit_pk = decode_id_or_none(selected_unit_id)
+        if unit_pk:
+            selected_unit = Unit.objects.filter(id=unit_pk).first()
 
     # Always default to the first available unit so matrix is strictly unit-wise
     if not selected_unit and all_units:

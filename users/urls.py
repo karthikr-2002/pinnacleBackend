@@ -1,5 +1,8 @@
 from django.urls import path
+from .id_encryption import register_eid_converter
 from . import views
+
+register_eid_converter()
 
 app_name = 'users'
 
@@ -10,6 +13,6 @@ urlpatterns = [
     path('profile/', views.profile_view, name='profile'),
     path('employees/', views.employee_list, name='employee_list'),
     path('employees/create/', views.employee_create, name='employee_create'),
-    path('employees/<int:pk>/edit/', views.employee_edit, name='employee_edit'),
-    path('employees/<int:pk>/reset-password/', views.employee_reset_password, name='employee_reset_password'),
+    path('employees/<eid:pk>/edit/', views.employee_edit, name='employee_edit'),
+    path('employees/<eid:pk>/reset-password/', views.employee_reset_password, name='employee_reset_password'),
 ]

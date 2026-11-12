@@ -31,7 +31,7 @@ class UserAuthTests(TestCase):
     def test_login_page_renders(self):
         response = self.client.get(reverse('users:login'))
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, 'Tailwindadmin')
+        self.assertContains(response, 'Pinnacle Care Home')
         self.assertContains(response, 'Welcome back!')
 
     def test_login_success(self):
@@ -94,23 +94,26 @@ class EmployeeAdminTests(TestCase):
     def test_staff_cannot_open_employee_pages(self):
         self.client.login(username='nurse_sarah', password='Password123!')
         response = self.client.get(reverse('employees:list'))
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse('evaluations:user_evaluations'))
 
     def test_admin_can_create_employee_with_unit(self):
         self.client.login(username='admin', password='Password123!')
         photo = SimpleUploadedFile('avatar.png', TINY_PNG, content_type='image/png')
         response = self.client.post(reverse('employees:create'), {
             'full_name': 'Maria Garcia',
+            'username': 'maria.garcia',
             'employee_id': 'EMP-2044',
             'email': 'maria.garcia@care.com',
             'password': 'SecretPass999!',
             'phone': '+1 555 0199',
             'unit': self.unit.id,
+            'is_active': True,
             'photo': photo,
         })
         self.assertEqual(response.status_code, 302)
         employee = User.objects.get(employee_id='EMP-2044')
-        self.assertEqual(employee.username, 'EMP-2044')
+        self.assertEqual(employee.username, 'maria.garcia')
         self.assertEqual(employee.first_name, 'Maria')
         self.assertEqual(employee.last_name, 'Garcia')
         self.assertEqual(employee.phone, '+1 555 0199')
@@ -158,10 +161,12 @@ class EmployeeAdminTests(TestCase):
         self.client.login(username='admin', password='Password123!')
         response = self.client.post(reverse('employees:edit', args=[employee.pk]), {
             'full_name': 'Maria Lopez',
+            'username': 'EMP-2044',
             'employee_id': 'EMP-2044',
             'email': 'maria.lopez@care.com',
             'phone': '555-0101',
             'unit': new_unit.id,
+            'is_active': True,
         })
         self.assertEqual(response.status_code, 302)
         employee.refresh_from_db()
@@ -171,3 +176,42 @@ class EmployeeAdminTests(TestCase):
         self.assertEqual(employee.phone, '555-0101')
         self.assertTrue(new_unit.users.filter(id=employee.id).exists())
         self.assertFalse(self.unit.users.filter(id=employee.id).exists())
+
+
+class IdEncryptionSecurityTests(TestCase):
+    def test_encode_and_decode_id(self):
+        from users.id_encryption import encode_id, decode_id, decode_id_or_none
+        token = encode_id(42)
+        self.assertEqual(len(token), 16)
+        self.assertEqual(decode_id(token), 42)
+
+        # Rejects raw sequential integers to prevent enumeration
+        with self.assertRaises(ValueError):
+            decode_id("42")
+
+        # Rejects tampered tokens
+        tampered = token[:-1] + ('A' if token[-1] != 'A' else 'B')
+        with self.assertRaises(ValueError):
+            decode_id(tampered)
+
+        # decode_id_or_none helper
+        self.assertEqual(decode_id_or_none(token), 42)
+        self.assertEqual(decode_id_or_none("42"), 42)
+        self.assertIsNone(decode_id_or_none("invalid-token-here"))
+
+    def test_url_reversing_and_resolution(self):
+        from django.urls import resolve, Resolver404
+        from users.id_encryption import encode_id
+
+        # Reversing using integer passes through EncryptedIdConverter
+        emp_url = reverse('employees:edit', args=[5])
+        token = encode_id(5)
+        self.assertIn(f'/employees/{token}/edit/', emp_url)
+
+        # Resolving encrypted URL correctly converts back to integer ID
+        match = resolve(emp_url)
+        self.assertEqual(match.kwargs['pk'], 5)
+
+        # Plain unencrypted numeric URLs fail resolution (HTTP 404)
+        with self.assertRaises(Resolver404):
+            resolve('/employees/5/edit/')

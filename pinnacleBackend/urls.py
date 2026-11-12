@@ -5,8 +5,11 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
+from users.id_encryption import register_eid_converter
 from users import employee_urls
 from users import views as user_views
+
+register_eid_converter()
 
 urlpatterns = [
     path('admin/', admin.site.urls),

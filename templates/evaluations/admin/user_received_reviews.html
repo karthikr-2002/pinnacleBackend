@@ -34,7 +34,7 @@
         </div>
 
         <div class="flex items-center gap-3">
-            <a href="{% url 'evaluations:evaluation_matrix' evaluation.id %}{% if unit %}?unit={{ unit.id }}{% endif %}"
+            <a href="{% url 'evaluations:evaluation_matrix' evaluation.id %}{% if unit %}?unit={{ unit.eid }}{% endif %}"
                class="px-4 py-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold border border-indigo-200 shadow-sm transition flex items-center gap-2">
                 <i class="fa-solid fa-table-cells"></i>
                 <span>View Evaluation Summary</span>

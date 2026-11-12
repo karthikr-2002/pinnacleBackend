@@ -42,6 +42,12 @@ class User(AbstractUser):
         return self.username
 
     @property
+    def eid(self):
+        """Returns the cryptographically encrypted, tamper-proof URL ID token."""
+        from .id_encryption import encode_id
+        return encode_id(self.id)
+
+    @property
     def display_name(self):
         full_name = self.get_full_name()
         if full_name:

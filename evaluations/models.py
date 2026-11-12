@@ -25,6 +25,11 @@ class Unit(models.Model):
     def total_employees(self):
         return self.users.count()
 
+    @property
+    def eid(self):
+        from users.id_encryption import encode_id
+        return encode_id(self.id)
+
 
 class EvaluationTemplate(models.Model):
     title = models.CharField(max_length=200, help_text="e.g. Monthly Clinical Care & Hygiene Standards")
@@ -60,6 +65,11 @@ class EvaluationTemplate(models.Model):
     @property
     def questions_count(self):
         return self.questions.count()
+
+    @property
+    def eid(self):
+        from users.id_encryption import encode_id
+        return encode_id(self.id)
 
     @property
     def total_evaluations_count(self):
@@ -182,6 +192,11 @@ class Evaluation(models.Model):
 
     def __str__(self):
         return f"{self.title} ({self.get_dynamic_status_display()})"
+
+    @property
+    def eid(self):
+        from users.id_encryption import encode_id
+        return encode_id(self.id)
 
     @property
     def is_upcoming(self):
@@ -319,6 +334,11 @@ class EvaluationSubmission(models.Model):
 
     def __str__(self):
         return f"{self.evaluator.username} evaluated {self.evaluatee.username} - {self.evaluation.title}"
+
+    @property
+    def eid(self):
+        from users.id_encryption import encode_id
+        return encode_id(self.id)
 
     @property
     def average_score(self):

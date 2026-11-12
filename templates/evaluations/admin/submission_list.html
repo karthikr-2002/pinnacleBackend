@@ -144,7 +144,7 @@
                             <span>View Staff ({{ eval_group.users|length }})</span>
                         </button>
 
-                        <a href="{% url 'evaluations:evaluation_matrix' eval_group.evaluation_id %}{% if group.unit %}?unit={{ group.unit.id }}{% endif %}"
+                        <a href="{% url 'evaluations:evaluation_matrix' eval_group.evaluation_id %}{% if group.unit %}?unit={{ group.unit.eid }}{% endif %}"
                            class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 shadow-2xs transition flex items-center gap-1.5 whitespace-nowrap active:scale-95"
                            title="View question-by-question evaluation summary across all users">
                             <i class="fa-solid fa-table-cells text-[11px]"></i>
@@ -176,7 +176,7 @@
                                 </div>
                             </div>
                             <div class="flex items-center gap-2 flex-shrink-0">
-                                <a href="{% url 'evaluations:evaluation_matrix' eval_group.evaluation_id %}{% if group.unit %}?unit={{ group.unit.id }}{% endif %}"
+                                <a href="{% url 'evaluations:evaluation_matrix' eval_group.evaluation_id %}{% if group.unit %}?unit={{ group.unit.eid }}{% endif %}"
                                    class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 shadow-2xs transition">
                                     <i class="fa-solid fa-table-cells text-[11px]"></i>
                                     <span>Evaluation Summary</span>
@@ -224,7 +224,7 @@
                                         </div>
                                     </div>
                                     <div class="flex items-center gap-2 flex-shrink-0">
-                                        <a href="{% url 'evaluations:admin_user_received_reviews' eval_group.evaluation_id user_data.user.id %}{% if group.unit %}?unit={{ group.unit.id }}{% endif %}"
+                                        <a href="{% url 'evaluations:admin_user_received_reviews' eval_group.evaluation_id user_data.user.id %}{% if group.unit %}?unit={{ group.unit.eid }}{% endif %}"
                                            class="px-3.5 py-1.5 rounded-xl bg-[#5D87FF] hover:bg-[#4570ea] text-white text-xs font-bold shadow-sm shadow-blue-500/20 transition flex items-center gap-1.5 whitespace-nowrap active:scale-95">
                                             <span>View Reviews</span>
                                             <i class="fa-solid fa-arrow-right text-[10px]"></i>
