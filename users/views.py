@@ -12,12 +12,13 @@ from .forms import (
 )
 from .models import User
 from .security import (
-    get_client_ip, check_login_lockout, record_login_failure, record_login_success
+    get_client_ip, check_login_lockout, record_login_failure, record_login_success,
+    admin_required, is_admin_user
 )
 
 
 def is_admin(user):
-    return user.is_authenticated and (user.is_superuser or getattr(user, 'role', '') == 'admin')
+    return is_admin_user(user)
 
 
 def login_view(request):
@@ -126,11 +127,8 @@ def register_view(request):
     return render(request, 'users/register.html', {'form': form})
 
 
-@login_required(login_url='users:login')
+@admin_required
 def employee_list(request):
-    if not is_admin(request.user):
-        raise PermissionDenied('Only administrators can manage employees.')
-
     search_query = request.GET.get('q', '').strip()
     status_filter = request.GET.get('status', '').strip().lower()
 
@@ -172,11 +170,8 @@ def employee_list(request):
     })
 
 
-@login_required(login_url='users:login')
+@admin_required
 def employee_create(request):
-    if not is_admin(request.user):
-        raise PermissionDenied('Only administrators can create employee accounts.')
-
     from evaluations.models import Unit
     units = Unit.objects.all().order_by('name')
 
@@ -205,11 +200,8 @@ def employee_create(request):
     })
 
 
-@login_required(login_url='users:login')
+@admin_required
 def employee_edit(request, pk):
-    if not is_admin(request.user):
-        raise PermissionDenied('Only administrators can edit employee accounts.')
-
     from evaluations.models import Unit
     employee = get_object_or_404(
         User.objects.exclude(role='admin').exclude(is_superuser=True),
@@ -241,11 +233,8 @@ def employee_edit(request, pk):
     })
 
 
-@login_required(login_url='users:login')
+@admin_required
 def employee_reset_password(request, pk):
-    if not is_admin(request.user):
-        raise PermissionDenied('Only administrators can reset employee passwords.')
-
     employee = get_object_or_404(
         User.objects.exclude(role='admin').exclude(is_superuser=True),
         pk=pk,

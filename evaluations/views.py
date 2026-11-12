@@ -8,21 +8,20 @@ from django.utils import timezone
 from .models import Unit, EvaluationTemplate, Question, Evaluation, EvaluationSubmission, Rating
 from .forms import UnitForm, EvaluationTemplateForm, EvaluationForm
 from users.models import User
+from users.security import admin_required, is_admin_user
 
 
 def is_admin(user):
-    return user.is_authenticated and (user.is_superuser or getattr(user, 'role', '') == 'admin')
+    return is_admin_user(user)
 
 
 # -------------------------------------------------------------
 # ADMIN VIEWS
 # -------------------------------------------------------------
 
-@login_required(login_url='users:login')
+@admin_required
 def evaluation_list(request):
     """Admin view: List all evaluations."""
-    if not is_admin(request.user):
-        return redirect('evaluations:user_evaluations')
 
     search_query = request.GET.get('q', '').strip()
 
@@ -45,12 +44,9 @@ def evaluation_list(request):
 
 
 
-@login_required(login_url='users:login')
+@admin_required
 def evaluation_create(request):
     """Admin view: Create a new evaluation and tag units."""
-    if not is_admin(request.user):
-        raise PermissionDenied("Only administrators can create evaluations.")
-
     if request.method == 'POST':
         form = EvaluationForm(request.POST)
         if form.is_valid():
@@ -74,12 +70,9 @@ def evaluation_create(request):
     })
 
 
-@login_required(login_url='users:login')
+@admin_required
 def evaluation_detail(request, pk):
     """Admin view: View evaluation details, tagged units, and employee completion status per unit."""
-    if not is_admin(request.user):
-        raise PermissionDenied("Only administrators can view evaluation analytics.")
-
     evaluation = get_object_or_404(
         Evaluation.objects.select_related('template').prefetch_related('units__users', 'template__questions'),
         pk=pk
@@ -198,12 +191,9 @@ def evaluation_detail(request, pk):
     })
 
 
-@login_required(login_url='users:login')
+@admin_required
 def template_list(request):
     """Admin view: List all evaluation templates."""
-    if not is_admin(request.user):
-        raise PermissionDenied("Only administrators can view templates.")
-
     templates = EvaluationTemplate.objects.filter(is_active=True).prefetch_related('questions', 'evaluations', 'snapshots__evaluations')
     return render(request, 'evaluations/admin/template_list.html', {
         'templates': templates,
@@ -211,12 +201,9 @@ def template_list(request):
     })
 
 
-@login_required(login_url='users:login')
+@admin_required
 def template_create(request):
     """Admin view: Create a new template and its questions (admin-style dynamic form)."""
-    if not is_admin(request.user):
-        raise PermissionDenied("Only administrators can create templates.")
-
     if request.method == 'POST':
         form = EvaluationTemplateForm(request.POST)
         if form.is_valid():
@@ -302,12 +289,9 @@ def template_create(request):
     })
 
 
-@login_required(login_url='users:login')
+@admin_required
 def template_edit(request, pk):
     """Admin view: Edit an existing template and its questions."""
-    if not is_admin(request.user):
-        raise PermissionDenied("Only administrators can edit templates.")
-
     template = get_object_or_404(EvaluationTemplate.objects.prefetch_related('questions'), pk=pk)
 
     if request.method == 'POST':
@@ -432,12 +416,9 @@ def template_edit(request, pk):
 
 
 
-@login_required(login_url='users:login')
+@admin_required
 def unit_list(request):
     """Admin view: List all care units. Select a unit to view its employees."""
-    if not is_admin(request.user):
-        raise PermissionDenied("Only administrators can view units.")
-
     units = Unit.objects.all().prefetch_related('users', 'evaluations')
     return render(request, 'evaluations/admin/unit_list.html', {
         'units': units,
@@ -445,12 +426,9 @@ def unit_list(request):
     })
 
 
-@login_required(login_url='users:login')
+@admin_required
 def unit_detail(request, pk):
     """Admin view: Show employees assigned to a selected care unit."""
-    if not is_admin(request.user):
-        raise PermissionDenied("Only administrators can view units.")
-
     unit = get_object_or_404(
         Unit.objects.prefetch_related('users', 'evaluations'),
         pk=pk,
@@ -478,12 +456,9 @@ def unit_detail(request, pk):
     })
 
 
-@login_required(login_url='users:login')
+@admin_required
 def unit_create(request):
     """Admin view: Create a new care unit. Staff are assigned from the employee page."""
-    if not is_admin(request.user):
-        raise PermissionDenied("Only administrators can create units.")
-
     if request.method == 'POST':
         form = UnitForm(request.POST)
         if form.is_valid():
@@ -501,12 +476,9 @@ def unit_create(request):
     })
 
 
-@login_required(login_url='users:login')
+@admin_required
 def unit_edit(request, pk):
     """Admin view: Update a care unit name and location."""
-    if not is_admin(request.user):
-        raise PermissionDenied("Only administrators can edit units.")
-
     unit = get_object_or_404(Unit, pk=pk)
     if request.method == 'POST':
         form = UnitForm(request.POST, instance=unit)
@@ -527,12 +499,9 @@ def unit_edit(request, pk):
 
 
 
-@login_required(login_url='users:login')
+@admin_required
 def admin_submissions_list(request):
     """Admin view: Global list of all employee evaluations submissions grouped unit-wise."""
-    if not is_admin(request.user):
-        raise PermissionDenied("Only administrators can view user evaluation data.")
-
     submissions_qs = EvaluationSubmission.objects.all().select_related(
         'evaluation', 'evaluator', 'evaluatee', 'unit'
     ).prefetch_related('ratings')
@@ -637,12 +606,9 @@ def admin_submissions_list(request):
 
 
 
-@login_required(login_url='users:login')
+@admin_required
 def admin_submission_detail(request, pk):
     """Admin view: Single employee submission breakdown."""
-    if not is_admin(request.user):
-        raise PermissionDenied("Only administrators can view user evaluation data.")
-
     submission = get_object_or_404(
         EvaluationSubmission.objects.select_related('evaluation', 'evaluator', 'evaluatee', 'unit').prefetch_related('ratings__question'),
         pk=pk
@@ -654,12 +620,9 @@ def admin_submission_detail(request, pk):
 
 
 
-@login_required(login_url='users:login')
+@admin_required
 def admin_user_received_reviews(request, evaluation_id, user_id):
     """Admin view: View all reviews and ratings received by a specific employee in an evaluation."""
-    if not is_admin(request.user):
-        raise PermissionDenied("Only administrators can view employee evaluation details.")
-
     evaluation = get_object_or_404(
         Evaluation.objects.select_related('template'),
         pk=evaluation_id
@@ -722,12 +685,9 @@ def admin_user_received_reviews(request, evaluation_id, user_id):
 
 
 
-@login_required(login_url='users:login')
+@admin_required
 def evaluation_matrix(request, pk):
     """Admin view: Calculation matrix view listing all staff and their ratings per question, matching spreadsheet layout."""
-    if not is_admin(request.user):
-        raise PermissionDenied("Only administrators can view evaluation matrix calculations.")
-
     evaluation = get_object_or_404(
         Evaluation.objects.select_related('template'),
         pk=pk

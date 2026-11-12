@@ -77,6 +77,7 @@ MIDDLEWARE = [
     'users.middleware.EnforceActiveUserMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'users.middleware.SecurityHeadersMiddleware',
 ]
 
 ROOT_URLCONF = 'pinnacleBackend.urls'
@@ -189,6 +190,8 @@ CSRF_COOKIE_SECURE = (not DEBUG) and os.environ.get('CSRF_COOKIE_SECURE', 'False
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
+SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
 
 # Login Security & Brute-Force Throttling
 LOGIN_MAX_FAILED_ATTEMPTS = int(os.environ.get('LOGIN_MAX_FAILED_ATTEMPTS', 5))
