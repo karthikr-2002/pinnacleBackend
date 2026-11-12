@@ -2,6 +2,7 @@ import re
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from .models import User
+from .image_security import validate_image_file, sanitize_and_clean_image
 
 
 class UserLoginForm(AuthenticationForm):
@@ -168,9 +169,10 @@ class EmployeeCreateForm(forms.Form):
     photo = forms.ImageField(
         label='Photo',
         required=False,
+        validators=[validate_image_file],
         widget=forms.ClearableFileInput(attrs={
             'class': 'block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-[#5D87FF] hover:file:bg-blue-100',
-            'accept': 'image/*',
+            'accept': 'image/jpeg,image/png,image/webp',
         }),
     )
     password = forms.CharField(
@@ -244,6 +246,12 @@ class EmployeeCreateForm(forms.Form):
         if len(name) < 2:
             raise forms.ValidationError('Please enter the employee name.')
         return name
+
+    def clean_photo(self):
+        photo = self.cleaned_data.get('photo')
+        if photo:
+            return sanitize_and_clean_image(photo)
+        return photo
 
     def save(self):
         full_name = self.cleaned_data['full_name']
@@ -323,9 +331,10 @@ class EmployeeEditForm(forms.Form):
     photo = forms.ImageField(
         label='Photo',
         required=False,
+        validators=[validate_image_file],
         widget=forms.ClearableFileInput(attrs={
             'class': 'block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-[#5D87FF] hover:file:bg-blue-100',
-            'accept': 'image/*',
+            'accept': 'image/jpeg,image/png,image/webp',
         }),
     )
     phone = forms.CharField(
@@ -405,6 +414,12 @@ class EmployeeEditForm(forms.Form):
         if len(name) < 2:
             raise forms.ValidationError('Please enter the employee name.')
         return name
+
+    def clean_photo(self):
+        photo = self.cleaned_data.get('photo')
+        if photo:
+            return sanitize_and_clean_image(photo)
+        return photo
 
     def save(self):
         user = self.instance
@@ -496,8 +511,15 @@ class UserProfileForm(forms.ModelForm):
             }),
             'photo': forms.ClearableFileInput(attrs={
                 'class': 'w-full px-3 py-2 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-[#5D87FF]/20 focus:border-[#5D87FF] bg-slate-50/50',
+                'accept': 'image/jpeg,image/png,image/webp',
             }),
         }
+
+    def clean_photo(self):
+        photo = self.cleaned_data.get('photo')
+        if photo:
+            return sanitize_and_clean_image(photo)
+        return photo
 
     def clean_email(self):
         email = self.cleaned_data.get('email', '').strip()
@@ -561,9 +583,10 @@ class AdminProfileEditForm(forms.Form):
     photo = forms.ImageField(
         label='Profile Photo',
         required=False,
+        validators=[validate_image_file],
         widget=forms.ClearableFileInput(attrs={
             'class': 'block w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-[#5D87FF] hover:file:bg-blue-100 transition',
-            'accept': 'image/*',
+            'accept': 'image/jpeg,image/png,image/webp',
             'id': 'id_photo_admin',
         }),
     )
@@ -616,6 +639,12 @@ class AdminProfileEditForm(forms.Form):
         if len(name) < 2:
             raise forms.ValidationError('Please enter a valid administrator name.')
         return name
+
+    def clean_photo(self):
+        photo = self.cleaned_data.get('photo')
+        if photo:
+            return sanitize_and_clean_image(photo)
+        return photo
 
     def save(self):
         user = self.instance

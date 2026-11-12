@@ -1,8 +1,36 @@
 import math
 from datetime import timedelta
+from functools import wraps
 from django.conf import settings
+from django.contrib import messages
+from django.shortcuts import redirect
 from django.utils import timezone
 from .models import LoginAttempt
+
+
+# ==============================================================================
+# ROLE-BASED ACCESS CONTROL (RBAC) DECORATORS
+# ==============================================================================
+
+def is_admin_user(user):
+    """Checks whether the user has administrator privileges."""
+    return user.is_authenticated and (user.is_superuser or getattr(user, 'role', '') == 'admin')
+
+
+def admin_required(view_func):
+    """
+    Decorator that restricts view access strictly to authenticated administrators.
+    Redirects non-admin users safely with an access denial alert.
+    """
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect('users:login')
+        if not is_admin_user(request.user):
+            messages.error(request, "Access denied. Administrator privileges are required.")
+            return redirect('evaluations:user_evaluations')
+        return view_func(request, *args, **kwargs)
+    return _wrapped_view
 
 
 def get_client_ip(request):

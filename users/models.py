@@ -1,5 +1,11 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.dispatch import receiver
+from .image_security import (
+    scramble_photo_filename,
+    validate_image_file,
+    cleanup_old_photo_file,
+)
 
 
 class User(AbstractUser):
@@ -19,7 +25,12 @@ class User(AbstractUser):
         help_text="Unique staff identifier used as the login username."
     )
     phone = models.CharField(max_length=20, blank=True, null=True)
-    photo = models.ImageField(upload_to='employees/photos/', blank=True, null=True)
+    photo = models.ImageField(
+        upload_to=scramble_photo_filename,
+        validators=[validate_image_file],
+        blank=True,
+        null=True
+    )
     avatar_url = models.CharField(
         max_length=500,
         blank=True,
@@ -88,4 +99,33 @@ class LoginAttempt(models.Model):
         import math
         secs = self.remaining_seconds()
         return max(1, math.ceil(secs / 60)) if secs > 0 else 0
+
+
+# ==============================================================================
+# AUTOMATIC ORPHANED FILE CLEANUP SIGNALS
+# ==============================================================================
+
+@receiver(models.signals.pre_save, sender=User)
+def auto_delete_photo_on_change(sender, instance, **kwargs):
+    """
+    Deletes superseded photo file from disk when a user replaces or removes
+    their profile photo, preventing accumulation of orphaned media files.
+    """
+    if not instance.pk:
+        return
+    try:
+        old_user = User.objects.filter(pk=instance.pk).first()
+        if not old_user or not old_user.photo:
+            return
+        if old_user.photo != instance.photo:
+            cleanup_old_photo_file(old_user.photo)
+    except Exception:
+        pass
+
+
+@receiver(models.signals.post_delete, sender=User)
+def auto_delete_photo_on_delete(sender, instance, **kwargs):
+    """Deletes photo file from disk when user record is permanently removed."""
+    if instance.photo:
+        cleanup_old_photo_file(instance.photo)
 

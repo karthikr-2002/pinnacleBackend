@@ -919,6 +919,8 @@ def evaluation_rate(request, pk, evaluatee_id):
         Evaluation.objects.select_related('template').prefetch_related('units', 'template__questions'),
         pk=pk
     )
+    # Check evaluation active state
+    evaluation.sync_status()
     if evaluation.is_upcoming:
         messages.warning(
             request,
@@ -926,22 +928,35 @@ def evaluation_rate(request, pk, evaluatee_id):
         )
         return redirect('evaluations:user_evaluations')
 
+    if not evaluation.is_active_for_users:
+        messages.warning(request, "This evaluation has concluded and is no longer open for review submissions.")
+        return redirect('evaluations:user_evaluations')
+
     evaluatee = get_object_or_404(User, pk=evaluatee_id)
 
+    # Inactive colleague check
+    if not evaluatee.is_active:
+        messages.error(request, "This staff member is currently inactive and cannot be evaluated.")
+        return redirect('evaluations:user_evaluations')
 
     # Cannot evaluate oneself
     if request.user.id == evaluatee.id:
         messages.error(request, "You cannot evaluate yourself. You evaluate other colleagues in your unit.")
         return redirect('evaluations:user_evaluations')
 
-    # Check eligibility of evaluator and evaluatee
-    if not evaluation.is_user_eligible(request.user):
+    # Verify evaluator is assigned to a tagged unit in this evaluation
+    evaluator_tagged_units = evaluation.units.filter(id__in=request.user.assigned_units.values_list('id', flat=True))
+    if not evaluator_tagged_units.exists():
         messages.error(request, "You are not assigned to any unit tagged in this evaluation.")
         return redirect('evaluations:user_evaluations')
 
-    # Find the shared unit between evaluator and evaluatee
-    shared_units = request.user.assigned_units.filter(id__in=evaluatee.assigned_units.values_list('id', flat=True))
-    unit = shared_units.first() or request.user.assigned_units.first()
+    # BOLA / IDOR Defense: Strictly verify evaluatee shares a participating unit with evaluator
+    shared_tagged_units = evaluator_tagged_units.filter(id__in=evaluatee.assigned_units.values_list('id', flat=True))
+    if not shared_tagged_units.exists():
+        messages.error(request, "You can only evaluate colleagues who share a participating care unit with you in this evaluation.")
+        return redirect('evaluations:user_evaluations')
+
+    unit = shared_tagged_units.first()
 
     # Check if this colleague has already been evaluated by this user
     existing_submission = evaluation.get_peer_submission(evaluator=request.user, evaluatee=evaluatee)
