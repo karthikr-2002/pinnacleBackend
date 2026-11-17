@@ -206,10 +206,38 @@ def evaluation_detail(request, pk):
 
 @admin_required
 def template_list(request):
-    """Admin view: List all evaluation templates."""
+    """Admin view: List all evaluation templates with pre-packaged data for preview."""
+    import json
     templates = EvaluationTemplate.objects.filter(is_active=True).prefetch_related('questions', 'evaluations', 'snapshots__evaluations')
+
+    templates_json = {}
+    for t in templates:
+        templates_json[str(t.id)] = {
+            'id': t.id,
+            'title': t.title,
+            'description': t.description or 'No description provided.',
+            'questions_count': t.questions_count,
+            'total_evaluations_count': t.total_evaluations_count,
+            'created_at': t.created_at.strftime('%b %d, %Y'),
+            'edit_url': f"/evaluations/templates/{t.eid}/edit/",
+            'questions': [
+                {
+                    'order': q.order,
+                    'text': q.question_text,
+                    'label_0': q.label_0,
+                    'label_1': q.label_1,
+                    'label_2': q.label_2,
+                    'label_3': q.label_3,
+                    'label_4': q.label_4,
+                    'label_5': q.label_5,
+                }
+                for q in t.questions.all().order_by('order', 'id')
+            ]
+        }
+
     return render(request, 'evaluations/admin/template_list.html', {
         'templates': templates,
+        'templates_json': json.dumps(templates_json),
         'active_menu': 'templates',
     })
 
@@ -461,7 +489,7 @@ def unit_detail(request, pk):
         pk=pk,
     )
     search_query = request.GET.get('q', '').strip()
-    employees = unit.users.all().prefetch_related('assigned_units').order_by('first_name', 'last_name', 'username')
+    employees = unit.users.filter(is_active=True).prefetch_related('assigned_units').order_by('first_name', 'last_name', 'username')
     if search_query:
         employees = employees.annotate(
             full_name_search=Concat('first_name', Value(' '), 'last_name')
@@ -478,6 +506,94 @@ def unit_detail(request, pk):
     return render(request, 'evaluations/admin/unit_detail.html', {
         'unit': unit,
         'employees': employees,
+        'search_query': search_query,
+        'active_menu': 'units',
+    })
+
+
+@admin_required
+def unit_evaluations(request, pk):
+    """Admin view: Show only evaluations tagged in this care unit and their results."""
+    unit = get_object_or_404(
+        Unit.objects.prefetch_related('users', 'evaluations'),
+        pk=pk,
+    )
+    search_query = request.GET.get('q', '').strip()
+    unit_employees = list(unit.users.filter(is_active=True).order_by('first_name', 'last_name', 'username'))
+    evaluations_qs = unit.evaluations.select_related('template', 'created_by').prefetch_related(
+        'template__questions',
+        'submissions__ratings',
+        'submissions__evaluator',
+        'submissions__evaluatee',
+    ).order_by('-start_date', '-id')
+
+    if search_query:
+        evaluations_qs = evaluations_qs.filter(
+            Q(title__icontains=search_query)
+            | Q(description__icontains=search_query)
+            | Q(template__title__icontains=search_query)
+        )
+
+    evaluations_data = []
+    active_employees = [e for e in unit_employees if e.is_active]
+    active_employees_count = len(active_employees)
+    expected_submissions_per_eval = active_employees_count * (active_employees_count - 1) if active_employees_count > 1 else 0
+
+    for ev in evaluations_qs:
+        ev.sync_status()
+
+        # Filter submissions belonging to this unit
+        unit_subs = [
+            s for s in ev.submissions.all()
+            if s.unit_id == unit.id or (s.evaluator in unit_employees and s.evaluatee in unit_employees)
+        ]
+        completed_subs_count = len(unit_subs)
+        progress_pct = int((completed_subs_count / expected_submissions_per_eval * 100)) if expected_submissions_per_eval > 0 else (100 if completed_subs_count > 0 else 0)
+        progress_pct = min(progress_pct, 100)
+
+        # Calculate unit average score
+        unit_ratings = [r.score for s in unit_subs for r in s.ratings.all()]
+        unit_avg_score = round(sum(unit_ratings) / len(unit_ratings), 2) if unit_ratings else None
+
+        # Build staff-level performance summary in this unit for this evaluation
+        staff_stats = []
+        for emp in unit_employees:
+            received_subs = [s for s in unit_subs if s.evaluatee_id == emp.id]
+            given_subs = [s for s in unit_subs if s.evaluator_id == emp.id]
+            received_ratings = [r.score for s in received_subs for r in s.ratings.all()]
+            emp_avg_received = round(sum(received_ratings) / len(received_ratings), 2) if received_ratings else None
+
+            peers_count = max(0, active_employees_count - 1) if emp.is_active else 0
+            has_completed_peer_reviews = len(given_subs) >= peers_count if peers_count > 0 else False
+
+            staff_stats.append({
+                'employee': emp,
+                'reviews_received_count': len(received_subs),
+                'reviews_given_count': len(given_subs),
+                'peers_count': peers_count,
+                'has_completed_reviews': has_completed_peer_reviews,
+                'avg_score': emp_avg_received,
+            })
+
+        # Sort staff by avg_score descending (None at the end)
+        staff_stats.sort(key=lambda x: (x['avg_score'] is not None, x['avg_score'] or 0), reverse=True)
+
+        evaluations_data.append({
+            'evaluation': ev,
+            'completed_submissions': completed_subs_count,
+            'expected_submissions': expected_submissions_per_eval,
+            'progress_pct': progress_pct,
+            'unit_avg_score': unit_avg_score,
+            'total_ratings_count': len(unit_ratings),
+            'staff_stats': staff_stats,
+            'questions_count': ev.template.questions.count() if ev.template else 0,
+        })
+
+    return render(request, 'evaluations/admin/unit_evaluations.html', {
+        'unit': unit,
+        'employees_count': len(unit_employees),
+        'active_employees_count': active_employees_count,
+        'evaluations_data': evaluations_data,
         'search_query': search_query,
         'active_menu': 'units',
     })

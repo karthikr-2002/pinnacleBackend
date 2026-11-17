@@ -33,6 +33,20 @@
         </div>
     </div>
 
+    <!-- Navigation Tabs -->
+    <div class="flex items-center gap-2 border-b border-slate-200/80 pb-1">
+        <a href="{% url 'evaluations:unit_detail' unit.pk %}"
+           class="px-4 py-2.5 rounded-xl text-xs font-bold bg-[#5D87FF] text-white shadow-md shadow-blue-500/20 flex items-center gap-2">
+            <i class="fa-solid fa-users"></i>
+            <span>Staff Members ({{ employees|length }})</span>
+        </a>
+        <a href="{% url 'evaluations:unit_evaluations' unit.pk %}"
+           class="px-4 py-2.5 rounded-xl text-xs font-semibold bg-white text-slate-600 border border-slate-200 hover:text-[#5D87FF] hover:border-blue-200 hover:bg-blue-50/50 transition flex items-center gap-2">
+            <i class="fa-solid fa-clipboard-check text-slate-400"></i>
+            <span>Evaluations & Results ({{ unit.evaluations.count }})</span>
+        </a>
+    </div>
+
     <!-- Employees Table Card -->
     <div class="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
         <div class="px-6 py-4 border-b border-slate-100 flex flex-col md:flex-row md:items-center gap-4 md:justify-between">

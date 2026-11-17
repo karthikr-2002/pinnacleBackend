@@ -17,6 +17,7 @@ urlpatterns = [
     path('units/', views.unit_list, name='unit_list'),
     path('units/create/', views.unit_create, name='unit_create'),
     path('units/<eid:pk>/', views.unit_detail, name='unit_detail'),
+    path('units/<eid:pk>/evaluations/', views.unit_evaluations, name='unit_evaluations'),
     path('units/<eid:pk>/edit/', views.unit_edit, name='unit_edit'),
     path('submissions/', views.admin_submissions_list, name='admin_submissions_list'),
     path('submissions/<eid:pk>/', views.admin_submission_detail, name='admin_submission_detail'),

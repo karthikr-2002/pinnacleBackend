@@ -41,13 +41,18 @@
 
             <div class="mt-6 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
                 <span class="text-slate-400">Created {{ unit.created_at|date:"M d, Y" }}</span>
-                <div class="relative z-10 flex items-center gap-2">
+                <div class="relative z-10 flex items-center gap-1.5 flex-wrap justify-end">
                     <a href="{% url 'evaluations:unit_detail' unit.pk %}"
-                       class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-100 text-[11px] font-semibold text-[#5D87FF] hover:bg-blue-100 transition">
+                       class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-blue-50 border border-blue-100 text-[11px] font-semibold text-[#5D87FF] hover:bg-blue-100 transition">
                         View staff
                     </a>
+                    <a href="{% url 'evaluations:unit_evaluations' unit.pk %}"
+                       class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-purple-50 border border-purple-100 text-[11px] font-semibold text-purple-700 hover:bg-purple-100 transition">
+                        <i class="fa-solid fa-clipboard-check text-[10px]"></i>
+                        View evaluations
+                    </a>
                     <a href="{% url 'evaluations:unit_edit' unit.pk %}"
-                       class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 hover:text-[#5D87FF] hover:border-blue-200 transition">
+                       class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 hover:text-[#5D87FF] hover:border-blue-200 transition">
                         <i class="fa-solid fa-pen-to-square text-[10px]"></i>
                         Edit
                     </a>

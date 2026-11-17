@@ -165,14 +165,19 @@ def register_view(request):
 
 @admin_required
 def employee_list(request):
+    from evaluations.models import Unit
+
     search_query = request.GET.get('q', '').strip()
     status_filter = request.GET.get('status', '').strip().lower()
+    unit_filter = request.GET.get('unit', '').strip()
 
     base_qs = (
         User.objects.exclude(role='admin')
         .exclude(is_superuser=True)
         .prefetch_related('assigned_units')
     )
+
+    all_units = Unit.objects.all().order_by('name')
 
     total_count = base_qs.count()
     active_count = base_qs.filter(is_active=True).count()
@@ -188,6 +193,8 @@ def employee_list(request):
             | Q(last_name__icontains=search_query)
             | Q(full_name_search__icontains=search_query)
             | Q(employee_id__icontains=search_query)
+            | Q(email__icontains=search_query)
+            | Q(phone__icontains=search_query)
         )
 
     if status_filter == 'active':
@@ -195,10 +202,21 @@ def employee_list(request):
     elif status_filter == 'inactive':
         employees = employees.filter(is_active=False)
 
+    if unit_filter:
+        from users.id_encryption import decode_id
+        # Support both numeric ID and encrypted EID or name
+        unit_id = decode_id(unit_filter) if not unit_filter.isdigit() else int(unit_filter)
+        if unit_id:
+            employees = employees.filter(assigned_units__id=unit_id)
+        else:
+            employees = employees.filter(assigned_units__name__iexact=unit_filter)
+
     return render(request, 'users/admin/employee_list.html', {
         'employees': employees,
         'search_query': search_query,
         'status_filter': status_filter,
+        'unit_filter': unit_filter,
+        'all_units': all_units,
         'total_count': total_count,
         'active_count': active_count,
         'inactive_count': inactive_count,
